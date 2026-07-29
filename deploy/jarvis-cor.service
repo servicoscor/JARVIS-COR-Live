@@ -1,0 +1,16 @@
+[Unit]
+Description=JARVIS COR Live
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/html/JARVIS-COR-Live
+Environment=HOST=0.0.0.0
+Environment=PORT=4173
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+User=central
+
+[Install]
+WantedBy=multi-user.target

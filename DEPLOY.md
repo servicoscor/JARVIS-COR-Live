@@ -54,3 +54,34 @@ C:\JARVIS-COR-Live\scripts\server-watch-git.ps1 -RepoPath C:\JARVIS-COR-Live -Br
 ```
 
 Se preferir algo mais controlado, crie uma tarefa no Agendador do Windows chamando `server-pull-deploy.ps1` a cada 1 minuto.
+
+## Linux em `/var/www/html/JARVIS-COR-Live`
+
+No servidor Linux:
+
+```bash
+cd /var/www/html/JARVIS-COR-Live
+git pull origin main
+npm ci
+npm run build
+sudo cp deploy/jarvis-cor.service /etc/systemd/system/jarvis-cor.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now jarvis-cor
+sudo systemctl status jarvis-cor --no-pager --lines=20
+```
+
+Atualizar manualmente:
+
+```bash
+cd /var/www/html/JARVIS-COR-Live
+chmod +x scripts/*.sh
+./scripts/server-pull-deploy.sh
+```
+
+Monitorar GitHub a cada 60 segundos:
+
+```bash
+cd /var/www/html/JARVIS-COR-Live
+chmod +x scripts/*.sh
+./scripts/server-watch-git.sh
+```
