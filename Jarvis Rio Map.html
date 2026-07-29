@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS COR — Mapa Operacional</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #0c1420; font-family: 'Inter', sans-serif; }
+  #map { position: absolute; inset: 0; }
+  .leaflet-tile { filter: brightness(0.62) invert(1) contrast(0.9) hue-rotate(180deg) saturate(0.6); }
+  .leaflet-container { background: #0c1420; }
+  @keyframes livedot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes pinPulse { 0%, 100% { box-shadow: 0 0 0 0 var(--pin-c); } 70% { box-shadow: 0 0 0 14px transparent; } }
+
+  #topbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; gap: 16px; padding: 12px 22px;
+    background: linear-gradient(180deg, #101d30, #0c1626); border-bottom: 2px solid #17c9b5;
+  }
+  #topbar .logo {
+    width: 38px; height: 42px; clip-path: polygon(50% 0%, 100% 18%, 100% 78%, 50% 100%, 0% 78%, 0% 18%);
+    background: linear-gradient(155deg, #1c3050, #101c30); border: 1px solid #2a3d57;
+    display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700; font-size: 9.5px; color: #4fe8d3; flex-shrink: 0;
+  }
+  #topbar .title { font-size: 15px; font-weight: 800; color: #f2f5f9; }
+  #topbar .subtitle { font-size: 10px; color: #7c8ba3; margin-top: 1px; }
+  #backLink {
+    margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+    color: #9fb0c7; background: #16253b; border: 1px solid rgba(255,255,255,0.08); padding: 7px 14px;
+    border-radius: 20px; text-decoration: none; white-space: nowrap;
+  }
+  #liveTag { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #4fe8d3;
+    background: rgba(23,201,181,0.1); border: 1px solid rgba(23,201,181,0.3); padding: 6px 11px; border-radius: 20px; }
+  #liveTag .dot { width: 6px; height: 6px; border-radius: 50%; background: #4fe8d3; animation: livedot 1.3s ease-in-out infinite; }
+
+  .leaflet-popup-content-wrapper { background: #0f1927; color: #dbe3ee; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+  .leaflet-popup-tip { background: #0f1927; }
+  .leaflet-popup-close-button { color: #7c8ba3 !important; }
+  .popup-inner { font-family: 'Inter', sans-serif; min-width: 230px; max-height: 340px; overflow-y: auto; }
+  .popup-ap { font-size: 9px; font-family: 'IBM Plex Mono', monospace; color: #63758f; letter-spacing: 1px; }
+  .popup-name { font-size: 16px; font-weight: 800; color: #eef2f7; margin-top: 3px; }
+  .popup-communities { font-size: 10.5px; color: #63758f; margin-top: 2px; }
+  .popup-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .popup-stat-label { font-size: 8.5px; color: #63758f; letter-spacing: 0.5px; }
+  .popup-stat-val { font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: #dbe3ee; margin-top: 2px; }
+  .popup-alert { display: inline-block; margin-top: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.4px; padding: 3px 9px; border-radius: 20px; }
+  .popup-event { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .popup-event-title { font-size: 11.5px; font-weight: 700; }
+  .popup-event-line { font-size: 11.5px; color: #c7d2e0; margin-top: 6px; line-height: 1.4; display: flex; gap: 7px; }
+  .popup-event-line span { color: #3d4d63; font-family: 'IBM Plex Mono', monospace; font-size: 9px; flex-shrink: 0; margin-top: 2px; }
+
+  #ticker { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1000; display: flex; align-items: center; gap: 14px;
+    padding: 9px 22px; background: rgba(6,8,13,0.85); border-top: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+  #tickerLabel { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; color: #ff8080; letter-spacing: 1px; flex-shrink: 0; }
+  #tickerLabel .dot { width: 6px; height: 6px; border-radius: 50%; background: #ff6b6b; animation: livedot 1s ease-in-out infinite; }
+  #tickerText { font-size: 12px; color: #93a2b6; white-space: nowrap; }
+</style>
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" fill="#0c1420"/>
+    <circle cx="100" cy="100" r="55" fill="none" stroke="#17c9b5" stroke-width="6"/>
+    <text x="100" y="112" font-size="46" text-anchor="middle" fill="#17c9b5" font-family="sans-serif">🗺️</text>
+  </svg>
+</template>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="logo">RIO</div>
+  <div>
+    <div class="title">JARVIS COR</div>
+    <div class="subtitle">Mapa Operacional · Regiões do Rio de Janeiro</div>
+  </div>
+  <div id="liveTag"><span class="dot"></span> AO VIVO</div>
+  <div id="liveWeatherTag" style="display:none;align-items:center;gap:6px;font-size:10px;font-weight:600;color:#5fb8ff;background:rgba(74,157,255,0.1);border:1px solid rgba(74,157,255,0.3);padding:6px 11px;border-radius:20px;">🌡️ Open-Meteo</div>
+  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#9fb0c7;cursor:pointer;">
+    <input type="checkbox" id="radarToggle" disabled style="accent-color:#17c9b5;">Radar de chuva
+  </label>
+  <a id="backLink" href="Jarvis Rio.dc.html">← Voltar ao painel</a>
+</div>
+
+<div id="map"></div>
+
+<div id="ticker">
+  <div id="tickerLabel"><span class="dot"></span> AO VIVO</div>
+  <div id="tickerText"></div>
+</div>
+
+<script>
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function rand(min, max) { return min + Math.random() * (max - min); }
+
+function severityColors(sev) {
+  if (sev === 2) return { border: '#e6534f', bg: 'rgba(230,83,79,0.14)', text: '#ff9591', label: 'CRÍTICO' };
+  if (sev === 1) return { border: '#dda23c', bg: 'rgba(221,162,60,0.14)', text: '#f0c069', label: 'ATENÇÃO' };
+  return { border: '#17c9b5', bg: 'rgba(23,201,181,0.14)', text: '#5fe8d6', label: 'NORMAL' };
+}
+
+const streetMap = {
+  centro: ['Av. Presidente Vargas', 'Rua Uruguaiana', 'Av. Rio Branco'],
+  zs: ['Av. Vieira Souto', 'Rua Visconde de Pirajá', 'Av. Niemeyer'],
+  gt: ['Rua Conde de Bonfim', 'Av. Maracanã', 'Rua São Francisco Xavier'],
+  zn: ['Av. Suburbana', 'Av. Dom Hélder Câmara', 'Rua Leopoldina Rego'],
+  ig: ['Estrada do Galeão', 'Av. Governador Leonel de Moura Brizola'],
+  barra: ['Av. das Américas', 'Av. Ayrton Senna'],
+  bangu: ['Rua Fonseca', 'Estrada do Mendanha', 'Av. Brasil'],
+  cg: ['Estrada do Guandu', 'Av. Santa Cruz'],
+};
+
+const regions = [
+  { id: 'centro', ap: 'AP1', name: 'Centro', lat: -22.9068, lng: -43.1958, temp: 29, tempMin: 24, tempMax: 34, rain: 12, trafficIdx: 1, occurrences: 3, powerIdx: 0, vandalism: 1, communities: ['Providência', 'Pinto', 'Mangueira'], transformersTotal: 14, transformersDown: 0 },
+  { id: 'zs', ap: 'AP2', name: 'Zona Sul', lat: -22.9707, lng: -43.1823, temp: 27, tempMin: 22, tempMax: 32, rain: 8, trafficIdx: 2, occurrences: 5, powerIdx: 0, vandalism: 0, communities: ['Rocinha', 'Vidigal', 'Cantagalo'], transformersTotal: 19, transformersDown: 0 },
+  { id: 'gt', ap: 'AP2', name: 'Grande Tijuca', lat: -22.9271, lng: -43.2306, temp: 28, tempMin: 23, tempMax: 33, rain: 22, trafficIdx: 1, occurrences: 2, powerIdx: 1, vandalism: 2, communities: ['Borel', 'Formiga', 'Salgueiro'], transformersTotal: 16, transformersDown: 1 },
+  { id: 'zn', ap: 'AP3', name: 'Zona Norte', lat: -22.8752, lng: -43.2698, temp: 30, tempMin: 25, tempMax: 36, rain: 34, trafficIdx: 2, occurrences: 9, powerIdx: 1, vandalism: 3, communities: ['Complexo do Alemão', 'Manguinhos', 'Vila Kennedy'], transformersTotal: 22, transformersDown: 2 },
+  { id: 'ig', ap: 'AP3', name: 'Ilha do Governador', lat: -22.8095, lng: -43.2153, temp: 29, tempMin: 24, tempMax: 34, rain: 18, trafficIdx: 0, occurrences: 1, powerIdx: 0, vandalism: 0, communities: ['Cocotá', 'Jardim Guanabara'], transformersTotal: 9, transformersDown: 0 },
+  { id: 'barra', ap: 'AP4', name: 'Barra da Tijuca', lat: -23.0045, lng: -43.3651, temp: 28, tempMin: 23, tempMax: 33, rain: 15, trafficIdx: 2, occurrences: 4, powerIdx: 0, vandalism: 1, communities: ['Vila Autódromo', 'Rio das Pedras'], transformersTotal: 17, transformersDown: 0 },
+  { id: 'bangu', ap: 'AP5', name: 'Bangu', lat: -22.8756, lng: -43.4653, temp: 31, tempMin: 26, tempMax: 37, rain: 45, trafficIdx: 1, occurrences: 7, powerIdx: 2, vandalism: 4, communities: ['Gericinó', 'Padre Miguel', 'Vila Kosmos'], transformersTotal: 18, transformersDown: 3 },
+  { id: 'cg', ap: 'AP5', name: 'Campo Grande', lat: -22.9028, lng: -43.5615, temp: 32, tempMin: 27, tempMax: 38, rain: 52, trafficIdx: 2, occurrences: 11, powerIdx: 2, vandalism: 5, communities: ['Vila do Céu', 'Nova Aliança', 'Jardim Maravilha'], transformersTotal: 21, transformersDown: 4 },
+];
+
+function computeSeverity(r) {
+  let score = 0;
+  if (r.rain > 60) score += 2; else if (r.rain > 30) score += 1;
+  if (r.occurrences > 8) score += 2; else if (r.occurrences > 4) score += 1;
+  if (r.trafficIdx === 2) score += 1;
+  if (r.powerIdx === 2) score += 2; else if (r.powerIdx === 1) score += 1;
+  if (r.vandalism > 3) score += 1;
+  if (r.transformersDown >= 3) score += 2; else if (r.transformersDown >= 1) score += 1;
+  if (score >= 3) return 2;
+  if (score >= 1) return 1;
+  return 0;
+}
+
+function riskScore(r) {
+  const rainPart = r.rain * 0.5;
+  const occPart = Math.min(r.occurrences, 20) * 3;
+  const trafficPart = r.trafficIdx * 12;
+  const powerPart = r.powerIdx * 14;
+  const vandalPart = Math.min(r.vandalism, 10) * 2;
+  const transformerPart = Math.min(r.transformersDown, 6) * 9;
+  return clamp(Math.round(rainPart * 0.24 + occPart * 0.28 + trafficPart * 0.15 + powerPart * 0.12 + vandalPart * 0.07 + transformerPart * 0.14), 2, 98);
+}
+
+function buildEvent(region) {
+  const streets = streetMap[region.id] || ['via principal da região'];
+  const street = streets[Math.floor(Math.random() * streets.length)];
+  const pool = [];
+  const accMm = (region.rain * 0.7 + rand(0, 12)).toFixed(0);
+  const rateMm = (region.rain / 9 + rand(0.2, 2.5)).toFixed(1);
+  pool.push({ title: 'PLUVIÔMETRO ATIVOU', lines: [
+    `${rateMm} mm na última hora, perto de ${street}`,
+    `${accMm} mm acumulados desde as 3h`,
+    region.rain > 50 ? 'Esse ritmo costuma alagar a região em 20–30 min — vale checar bueiros críticos' : region.rain > 25 ? 'Chuva chata mas ainda controlável, sem histórico de alagamento nesse volume' : 'Nada preocupante, chuva fraca e isolada',
+  ]});
+  if (region.trafficIdx === 2) pool.push({ title: 'TRÂNSITO TRAVOU', lines: [
+    `${street} andando a menos de 12 km/h`, 'Provavelmente reflexo da chuva ou um acidente — sem confirmação ainda', 'CET-Rio já foi avisado, sem previsão de liberação',
+  ]});
+  if (region.occurrences > 5) pool.push({ title: 'MAIS UMA OCORRÊNCIA ABERTA', lines: [
+    `${region.occurrences} chamados abertos agora nessa região, acima da média do dia`, 'Uma equipe de campo foi mandada pra checar de perto', 'Sem confirmação do que é ainda — atualiza em ~15 min',
+  ]});
+  if (region.powerIdx >= 1) pool.push({ title: region.powerIdx === 2 ? 'FALTA DE ENERGIA CONFIRMADA' : 'INSTABILIDADE NA REDE ELÉTRICA', lines: [
+    `Comunidades afetadas: ${region.communities.slice(0, 2).join(', ')}`,
+    region.powerIdx === 2 ? 'Concessionária já foi acionada, sem previsão de normalização' : 'Oscilação registrada, ainda não virou queda total',
+    `Perto de ${street}`,
+  ]});
+  if (region.transformersDown >= 1) pool.push({ title: region.transformersDown >= 3 ? 'MÚLTIPLOS TRANSFORMADORES CAÍRAM' : 'TRANSFORMADOR EM FALHA', lines: [
+    `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operação`, `Concentrado perto de ${street}`,
+    region.transformersDown >= 3 ? 'Light já foi acionada, equipe de manutenção a caminho' : 'Sob observação, ainda não afetou o fornecimento geral',
+  ]});
+  if (region.vandalism > 2) pool.push({ title: 'REGISTRO DE VANDALISMO', lines: [
+    `${region.vandalism} ocorrências de vandalismo nas últimas 24h nessa região`, `Foco em ${region.communities[0]}`, 'Guarda Municipal notificada para reforço na área',
+  ]});
+  pool.push({ title: 'CÂMERA VIROU PRA CÁ', lines: [
+    `Operador redirecionou a câmera mais próxima de ${street}`, `${region.temp.toFixed(1)}°C no sensor local agora`, 'Ainda sem nada visível de anormal na imagem',
+  ]});
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+const map = L.map('map', { zoomControl: true, attributionControl: true }).setView([-22.925, -43.32], 11);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 18 }).addTo(map);
+
+// Bairro (neighborhood) -> region id, based on Rio's official Área de Planejamento zoning (IPP/Data.rio)
+function stripAccents(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim(); }
+const bairroToRegion = {};
+[
+  ['centro', ['Centro', 'Lapa', 'Gloria', 'Catumbi', 'Cidade Nova', 'Estacio', 'Rio Comprido', 'Santo Cristo', 'Gamboa', 'Saude', 'Caju', 'Sao Cristovao', 'Paqueta', 'Santa Teresa', 'Vasco da Gama', 'Mangueira']],
+  ['zs', ['Botafogo', 'Flamengo', 'Catete', 'Cosme Velho', 'Laranjeiras', 'Urca', 'Leme', 'Copacabana', 'Ipanema', 'Leblon', 'Lagoa', 'Jardim Botanico', 'Gavea', 'Sao Conrado', 'Humaita', 'Vidigal', 'Rocinha']],
+  ['gt', ['Tijuca', 'Vila Isabel', 'Grajau', 'Andarai', 'Maracana', 'Praca da Bandeira', 'Alto da Boa Vista']],
+  ['zn', ['Ramos', 'Bonsucesso', 'Manguinhos', 'Olaria', 'Penha', 'Penha Circular', 'Vila da Penha', 'Vigario Geral', 'Meier', 'Todos os Santos', 'Cachambi', 'Engenho de Dentro', 'Engenho Novo', 'Agua Santa', 'Encantado', 'Piedade', 'Abolicao', 'Pilares', 'Sampaio', 'Riachuelo', 'Rocha', 'Sao Francisco Xavier', 'Del Castilho', 'Inhauma', 'Higienopolis', 'Jacare', 'Jacarezinho', 'Maria da Graca', 'Complexo do Alemao', 'Cacuia', 'Vaz Lobo', 'Benfica', 'Jardim America', 'Campinho', 'Turiacu', 'Bras de Pina', 'Tomas Coelho', 'Cordovil', 'Parada de Lucas', 'Engenho da Rainha', 'Lins de Vasconcelos', 'Vila Kosmos', 'Vicente de Carvalho', 'Vista Alegre', 'Cascadura', 'Madureira', 'Iraja', 'Colegio', 'Quintino Bocaiuva', 'Cavalcanti', 'Engenheiro Leal', 'Rocha Miranda', 'Honorio Gurgel', 'Osvaldo Cruz', 'Acari', 'Bento Ribeiro', 'Marechal Hermes', 'Barros Filho', 'Cidade Universitaria', 'Guadalupe', 'Coelho Neto', 'Ricardo de Albuquerque', 'Parque Anchieta', 'Anchieta', 'Pavuna', 'Complexo do Chapeu Mangueira', 'Manguariba', 'Praia da Rosa', 'Maria Ortiz', 'Vila da Penha', 'Costa Barros', 'Maré', 'Vila Kennedy']],
+  ['ig', ['Cocota', 'Freguesia (Ilha)', 'Jardim Guanabara', 'Taua', 'Ribeira', 'Zumbi', 'Bancarios', 'Portuguesa', 'Galeao', 'Praia da Bandeira', 'Pitangueiras', 'Monero', 'Jardim Carioca', 'Ilha do Governador']],
+  ['barra', ['Barra da Tijuca', 'Recreio dos Bandeirantes', 'Camorim', 'Vargem Grande', 'Vargem Pequena', 'Itanhanga', 'Joa', 'Jacarepagua', 'Anil', 'Freguesia (Jacarepagua)', 'Pechincha', 'Taquara', 'Tanque', 'Curicica', 'Gardenia Azul', 'Cidade de Deus', 'Praca Seca', 'Vila Valqueire', 'Jardim Sulacap', 'Grumari']],
+  ['bangu', ['Bangu', 'Padre Miguel', 'Realengo', 'Deodoro', 'Vila Militar', 'Magalhaes Bastos', 'Gericino', 'Senador Camara', 'Campo dos Afonsos']],
+  ['cg', ['Campo Grande', 'Santa Cruz', 'Cosmos', 'Inhoaiba', 'Guaratiba', 'Barra de Guaratiba', 'Sepetiba', 'Paciencia', 'Santissimo', 'Pedra de Guaratiba', 'Parque Columbia', 'Senador Vasconcelos']],
+].forEach(([regionId, names]) => names.forEach((n) => { bairroToRegion[stripAccents(n)] = regionId; }));
+
+function regionIdForBairro(props) {
+  const candidates = [props.nome, props.NOME, props.Nome, props.name, props.NAME, props.bairro, props.BAIRRO];
+  for (const c of candidates) {
+    if (c && bairroToRegion[stripAccents(c)]) return bairroToRegion[stripAccents(c)];
+  }
+  return null;
+}
+
+let bairroLayer = null;
+fetch('https://gist.githubusercontent.com/esperanc/db213370dd176f8524ae6ba32433f90a/raw/6dff5654e9ff6395f09f18ea2692f40ed2060cb9/Limite_Bairro.geojson')
+  .then((r) => r.json())
+  .then((geo) => {
+    bairroLayer = L.geoJSON(geo, {
+      style: (feature) => {
+        const regionId = regionIdForBairro(feature.properties || {});
+        const region = regions.find((r) => r.id === regionId);
+        const sc = region ? severityColors(computeSeverity(region)) : { border: '#3a4a5f' };
+        return { color: sc.border, weight: 1, fillColor: sc.border, fillOpacity: region ? 0.28 : 0.05, opacity: 0.6 };
+      },
+      onEachFeature: (feature, layer) => {
+        const regionId = regionIdForBairro(feature.properties || {});
+        const region = regions.find((r) => r.id === regionId);
+        const nomeBairro = feature.properties?.nome || feature.properties?.NOME || feature.properties?.Nome || feature.properties?.name || '';
+        layer.on('click', () => { if (region) openBairroPopup(region, layer, activeEvent && activeEvent.regionId === region.id ? activeEvent : null); });
+        layer.bindTooltip(region ? `${nomeBairro} · ${region.name}` : nomeBairro, { sticky: true });
+      },
+    }).addTo(map);
+    computeRegionBounds();
+    refreshBairroColors();
+  })
+  .catch(() => {});
+
+function refreshBairroColors() {
+  if (!bairroLayer) return;
+  bairroLayer.eachLayer((layer) => {
+    const regionId = regionIdForBairro(layer.feature.properties || {});
+    const region = regions.find((r) => r.id === regionId);
+    const sc = region ? severityColors(computeSeverity(region)) : { border: '#3a4a5f' };
+    if (openRegionId && regionId === openRegionId) {
+      const isHighlighted = highlightedLayers.includes(layer);
+      layer.setStyle({ color: isHighlighted ? '#ffffff' : sc.border, fillColor: sc.border, fillOpacity: region ? 0.28 : 0.05, weight: isHighlighted ? 2.5 : 1, opacity: isHighlighted ? 1 : 0.6 });
+    } else {
+      layer.setStyle({ color: sc.border, fillColor: sc.border, fillOpacity: region ? 0.28 : 0.05, weight: 1, opacity: 0.6 });
+    }
+  });
+}
+
+function popupHtml(region, activeEvent, bairroNome) {
+  const sev = computeSeverity(region);
+  const sc = severityColors(sev);
+  const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
+  let eventHtml = '';
+  if (activeEvent && activeEvent.regionId === region.id) {
+    eventHtml = `<div class="popup-event">
+      <div class="popup-event-title" style="color:${sc.text};">${activeEvent.title}</div>
+      ${activeEvent.lines.map((l, i) => `<div class="popup-event-line"><span>${String(i+1).padStart(2,'0')}</span>${l}</div>`).join('')}
+    </div>`;
+  }
+  return `<div class="popup-inner">
+    <div class="popup-ap">${region.ap} · ${region.name}</div>
+    <div class="popup-name">${bairroNome || region.name}</div>
+    <div class="popup-communities">${region.communities.slice(0,2).join(' · ')}</div>
+    <div class="popup-stats">
+      <div><div class="popup-stat-label">TEMP</div><div class="popup-stat-val">${region.temp.toFixed(1)}°</div></div>
+      <div><div class="popup-stat-label">CHUVA</div><div class="popup-stat-val">${Math.round(region.rain)}%</div></div>
+      <div><div class="popup-stat-label">TRÂNS.</div><div class="popup-stat-val" style="font-size:11.5px;">${trafficLabels[region.trafficIdx]}</div></div>
+    </div>
+    <div class="popup-stats" style="margin-top:8px;">
+      <div><div class="popup-stat-label">TRANSF.</div><div class="popup-stat-val" style="font-size:11.5px;">${region.transformersTotal - region.transformersDown}/${region.transformersTotal}</div></div>
+      <div><div class="popup-stat-label">OCORR.</div><div class="popup-stat-val">${region.occurrences}</div></div>
+      <div><div class="popup-stat-label">RISCO</div><div class="popup-stat-val" style="color:${sc.text};">${riskScore(region)}</div></div>
+    </div>
+    <div class="popup-alert" style="background:${sc.bg};color:${sc.text};border:1px solid ${sc.border}44;">${sc.label}</div>
+    ${eventHtml}
+  </div>`;
+}
+
+const popups = {};
+regions.forEach((r) => {
+  popups[r.id] = L.popup({ maxWidth: 280, autoClose: false, closeOnClick: false, autoPan: true, autoPanPaddingTopLeft: L.point(20, 80), autoPanPaddingBottomRight: L.point(20, 90) }).setLatLng([r.lat, r.lng]);
+});
+let openRegionId = null;
+
+const regionBounds = {};
+const boundsExcludeBairros = new Set(['PAQUETA'].map(stripAccents));
+function computeRegionBounds() {
+  bairroLayer.eachLayer((layer) => {
+    const props = layer.feature.properties || {};
+    const regionId = regionIdForBairro(props);
+    if (!regionId) return;
+    const nome = props.nome || props.NOME || props.Nome || props.name || '';
+    if (boundsExcludeBairros.has(stripAccents(nome))) return;
+    if (!regionBounds[regionId]) regionBounds[regionId] = layer.getBounds();
+    else regionBounds[regionId].extend(layer.getBounds());
+  });
+}
+
+let highlightedLayers = [];
+function bairroNomeOf(layer) {
+  const p = layer.feature.properties || {};
+  return p.nome || p.NOME || p.Nome || p.name || '';
+}
+
+function openBairroPopup(region, bairroLayer_, ev) {
+  if (openRegionId && openRegionId !== region.id && popups[openRegionId]) map.closePopup(popups[openRegionId]);
+  const center = bairroLayer_ ? bairroLayer_.getBounds().getCenter() : L.latLng(region.lat, region.lng);
+  const p = popups[region.id];
+  p.setLatLng(center);
+  p.setContent(popupHtml(region, ev || null, bairroLayer_ ? bairroNomeOf(bairroLayer_) : null));
+  p.openOn(map);
+  openRegionId = region.id;
+  requestAnimationFrame(() => {
+    const el = p.getElement();
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const topbarH = 70, tickerTop = document.getElementById('ticker').getBoundingClientRect().top;
+    let dy = 0;
+    if (rect.top < topbarH) dy = rect.top - topbarH;
+    else if (rect.bottom > tickerTop) dy = rect.bottom - tickerTop;
+    if (dy !== 0) map.panBy([0, dy], { animate: true });
+  });
+
+  highlightedLayers.forEach(() => {});
+  highlightedLayers = [];
+  if (bairroLayer_) {
+    bairroLayer_.setStyle({ color: '#ffffff', weight: 2.5, opacity: 1 });
+    bairroLayer_.bringToFront();
+    highlightedLayers.push(bairroLayer_);
+  }
+}
+
+function pickBairroForRegion(regionId) {
+  const candidates = [];
+  bairroLayer.eachLayer((layer) => { if (regionIdForBairro(layer.feature.properties || {}) === regionId) candidates.push(layer); });
+  if (!candidates.length) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+map.on('popupclose', (e) => {
+  if (openRegionId && popups[openRegionId] === e.popup) {
+    openRegionId = null;
+    refreshBairroColors();
+    highlightedLayers = [];
+  }
+});
+
+let activeEvent = null;
+
+function refreshOpenPopup() {
+  if (!openRegionId) return;
+  const region = regions.find((r) => r.id === openRegionId);
+  const ev = activeEvent && activeEvent.regionId === openRegionId ? activeEvent : null;
+  const bairroNome = highlightedLayers[0] ? bairroNomeOf(highlightedLayers[0]) : null;
+  popups[openRegionId].setContent(popupHtml(region, ev, bairroNome));
+}
+
+// --- Live data: Open-Meteo (temp + precipitation, no key required, CORS-open) ---
+async function fetchLiveWeather() {
+  const lats = regions.map((r) => r.lat).join(',');
+  const lngs = regions.map((r) => r.lng).join(',');
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,precipitation&timezone=America%2FSao_Paulo`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : [data];
+    list.forEach((d, i) => {
+      const r = regions[i];
+      if (!r || !d.current) return;
+      r.temp = d.current.temperature_2m;
+      r.rain = clamp(d.current.precipitation * 20, 0, 100);
+      r.liveWeather = true;
+    });
+    refreshOpenPopup();
+    refreshBairroColors();
+    document.getElementById('liveWeatherTag').style.display = 'flex';
+  } catch (e) {
+    document.getElementById('liveWeatherTag').style.display = 'none';
+  }
+}
+
+// --- Live data: RainViewer radar tiles (public, no key required) ---
+async function initRainRadar() {
+  try {
+    const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+    const data = await res.json();
+    const frame = data.radar?.past?.slice(-1)[0];
+    if (!frame) return;
+    const radarLayer = L.tileLayer(`https://tilecache.rainviewer.com${frame.path}/512/{z}/{x}/{y}/2/1_1.png`, { opacity: 0.55, zIndex: 500, maxNativeZoom: 7, tileSize: 512 });
+    const toggle = document.getElementById('radarToggle');
+    toggle.addEventListener('change', () => { toggle.checked ? radarLayer.addTo(map) : map.removeLayer(radarLayer); });
+    toggle.disabled = false;
+  } catch (e) {}
+}
+
+function updateTicker() {
+  const alertRegions = regions.filter((r) => riskScore(r) > 40);
+  const items = alertRegions.length
+    ? alertRegions.map((r) => `${r.name}: ${r.occurrences} ocorrências em aberto, chuva em ${Math.round(r.rain)}% — vale acompanhar`)
+    : ['Nada fora do comum nas últimas horas', 'Equipes seguem em ronda de rotina pela cidade'];
+  document.getElementById('tickerText').textContent = items.join('     ·     ');
+}
+
+function tick() {
+  regions.forEach((r) => {
+    if (!r.liveWeather) {
+      r.temp = clamp(r.temp + rand(-0.35, 0.35), r.tempMin, r.tempMax);
+      r.rain = clamp(r.rain + rand(-3.5, 3.5), 0, 100);
+    }
+    if (Math.random() < 0.18) r.occurrences = clamp(r.occurrences + (Math.random() < 0.5 ? -1 : 1), 0, 40);
+    if (Math.random() < 0.22) r.trafficIdx = clamp(r.trafficIdx + (Math.random() < 0.5 ? -1 : 1), 0, 2);
+    refreshOpenPopup();
+  });
+  updateTicker();
+  refreshBairroColors();
+}
+
+function triggerEvent() {
+  const region = regions[Math.floor(Math.random() * regions.length)];
+  const ev = buildEvent(region);
+  activeEvent = { regionId: region.id, ...ev };
+  refreshBairroColors();
+  openBairroPopup(region, pickBairroForRegion(region.id), activeEvent);
+  clearTimeout(triggerEvent.clearT);
+  triggerEvent.clearT = setTimeout(() => {
+    const ended = activeEvent;
+    activeEvent = null;
+    refreshBairroColors();
+    if (ended && openRegionId === ended.regionId) {
+      map.closePopup(popups[ended.regionId]);
+    }
+  }, 6000);
+}
+
+updateTicker();
+setInterval(tick, 2200);
+setInterval(triggerEvent, 9000);
+setTimeout(triggerEvent, 1800);
+fetchLiveWeather();
+setInterval(fetchLiveWeather, 5 * 60 * 1000);
+initRainRadar();
+</script>
+</body>
+</html>

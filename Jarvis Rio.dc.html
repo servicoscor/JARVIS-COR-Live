@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @keyframes livedot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes lineIn { 0% { opacity: 0; transform: translateY(3px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes cardFlash { 0%, 100% { box-shadow: 0 0 0 1px var(--flash-c); } 50% { box-shadow: 0 0 0 1px var(--flash-c), 0 0 0 4px var(--flash-c2); } }
+    @keyframes drawerFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+    @keyframes headerSweep { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+    @keyframes heroGlow { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    @keyframes arrowDash { 0% { stroke-dashoffset: 18; } 100% { stroke-dashoffset: 0; } }
+    @keyframes cardPop { 0% { transform: scale(1); } 30% { transform: scale(1.025); } 100% { transform: scale(1.012); } }
+    @keyframes bracketPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    body { margin: 0; background: #0c1420; }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-thumb { background: #223349; }
+    .jarvis-card:hover { transform: translateY(-2px); }
+  </style>
+</helmet>
+
+<div style="width:100%;height:100vh;background:#0c1420;background-image:radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);background-size:22px 22px;display:flex;flex-direction:column;overflow:hidden;font-family:'Inter',sans-serif;position:relative;">
+
+  <!-- HEADER -->
+  <div style="flex-shrink:0;background:linear-gradient(180deg, #101d30, #0c1626);border-bottom:2px solid transparent;border-image:linear-gradient(90deg, #17c9b5, #4a9dff, #17c9b5) 1;background-size:200% 100%;">
+    <div style="display:flex;align-items:center;gap:20px;padding:12px 24px;">
+      <div style="display:flex;align-items:center;gap:11px;flex-shrink:0;">
+        <div style="width:40px;height:44px;clip-path:polygon(50% 0%, 100% 18%, 100% 78%, 50% 100%, 0% 78%, 0% 18%);background:linear-gradient(155deg, #1c3050, #101c30);border:1px solid #2a3d57;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:10px;color:#4fe8d3;line-height:1.1;text-align:center;letter-spacing:0.3px;">RIO</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#f2f5f9;letter-spacing:0.2px;">JARVIS COR</div>
+          <div style="font-size:10.5px;color:#7c8ba3;margin-top:1px;">Centro de Operações e Resiliência</div>
+        </div>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <div style="text-align:right;">
+        <div style="font-size:9px;letter-spacing:0.8px;color:#7c8ba3;">HORA LOCAL</div>
+        <div style="font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#eef2f7;">{{ time }}</div>
+      </div>
+      <sc-if value="{{ liveWeatherOn }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:#5fb8ff;background:rgba(74,157,255,0.1);border:1px solid rgba(74,157,255,0.3);padding:6px 11px;border-radius:20px;">🌡️ Open-Meteo</div>
+      </sc-if>
+      <a href="Jarvis Rio Map.html" style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;text-decoration:none;background:#16253b;color:#9fb0c7;border:1px solid rgba(255,255,255,0.08);white-space:nowrap;">🗺️ Mapa Operacional</a>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#4fe8d3;background:rgba(23,201,181,0.1);border:1px solid rgba(23,201,181,0.3);padding:6px 11px;border-radius:20px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#e8a13f;animation:livedot 1.6s ease-in-out infinite;"></span>
+        <span style="width:6px;height:6px;border-radius:50%;background:#4fe8d3;animation:livedot 1.3s ease-in-out infinite;"></span>
+        {{ apisOnline }} APIs
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div style="flex-shrink:0;display:grid;grid-template-columns:repeat(5, 1fr);background:#0e1a2b;border-bottom:1px solid rgba(255,255,255,0.07);">
+    <sc-for list="{{ kpis }}" as="kpi" hint-placeholder-count="5">
+      <div style="display:flex;align-items:center;gap:13px;padding:14px 20px;border-right:1px solid rgba(255,255,255,0.06);position:relative;overflow:hidden;">
+        <div style="{{ kpi.barStyle }}"></div>
+        <div style="{{ kpi.glowStyle }}"></div>
+        <div style="width:38px;height:38px;border-radius:10px;background:{{ kpi.iconBg }};border:1px solid {{ kpi.iconBorder }};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);position:relative;z-index:1;">{{ kpi.icon }}</div>
+        <div style="min-width:0;flex:1;position:relative;z-index:1;">
+          <div style="font-size:9px;letter-spacing:0.3px;color:#7c8ba3;font-weight:600;line-height:1.25;">{{ kpi.label }}</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:2px;">
+            <div style="font-size:20px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:{{ kpi.valueColor }};line-height:1;">{{ kpi.value }}</div>
+            <div style="{{ kpi.trendStyle }}">{{ kpi.trendArrow }} {{ kpi.trendVal }}</div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- BODY: summary rail + region grid -->
+  <div ref="{{ mainRef }}" style="flex:1;position:relative;overflow:hidden;display:flex;align-items:stretch;">
+
+    <!-- LEFT SUMMARY RAIL -->
+    <div style="width:236px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.015);padding:22px 18px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;min-height:0;">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
+        <div style="width:116px;height:116px;position:relative;">
+          <div style="width:100%;height:100%;border-radius:50%;background:{{ cityRingBg }};"></div>
+          <div style="position:absolute;inset:8px;border-radius:50%;background:#0f1927;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="font-size:34px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:#eef2f7;line-height:1;">{{ cityRiskPct }}</div>
+            <div style="font-size:8px;letter-spacing:1.2px;color:#63758f;margin-top:4px;">RISCO DA CIDADE</div>
+          </div>
+        </div>
+        <div style="{{ cityStatusPillStyle }}margin-top:12px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:currentColor;animation:livedot 1.5s ease-in-out infinite;"></span>
+          {{ cityStatusLabel }}
+        </div>
+      </div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;display:flex;flex-direction:column;gap:13px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10.5px;color:#7c8ba3;letter-spacing:0.3px;">Ocorrências ativas</div>
+          <div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#eef2f7;">{{ totalOcc }}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10.5px;color:#7c8ba3;letter-spacing:0.3px;">Regiões em alerta</div>
+          <div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#eef2f7;">{{ alertCount }}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:10.5px;color:#7c8ba3;letter-spacing:0.3px;">Temperatura média</div>
+          <div style="font-size:16px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#eef2f7;">{{ avgTempStr }}</div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:15px;">
+        <div style="font-size:9.5px;color:#63758f;letter-spacing:0.8px;margin-bottom:9px;">RANKING DE RISCO</div>
+        <sc-for list="{{ rankedRegions }}" as="rr" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <div style="font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:#3d4d63;width:12px;flex-shrink:0;">{{ rr.rank }}</div>
+            <div style="width:6px;height:6px;border-radius:50%;background:{{ rr.dotColor }};flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;font-size:12px;color:#c7d2e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ rr.name }}</div>
+            <div style="font-size:11.5px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:{{ rr.dotColor }};">{{ rr.risk }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:15px;">
+        <div style="font-size:9.5px;color:#63758f;letter-spacing:0.8px;margin-bottom:9px;display:flex;align-items:center;gap:6px;">
+          <span style="width:5px;height:5px;border-radius:50%;background:#ff6b6b;animation:livedot 1.3s ease-in-out infinite;"></span>
+          ATIVIDADE RECENTE
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <sc-for list="{{ eventLog }}" as="ev" hint-placeholder-count="4">
+            <div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:lineIn 0.3s ease both;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <div style="font-size:11px;font-weight:600;color:#dbe3ee;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ev.regionName }}</div>
+                <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:#4a5a70;flex-shrink:0;">{{ ev.timeStr }}</div>
+              </div>
+              <div style="font-size:10.5px;color:{{ ev.color }};margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ev.title }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGION BENTO GRID -->
+    <div style="{{ gridWrapStyle }}">
+      <sc-for list="{{ regions }}" as="region" hint-placeholder-count="8">
+        <div ref="{{ region.setRef }}" class="jarvis-card" style="{{ region.cardStyle }}">
+          <sc-if value="{{ region.isEventRegion }}" hint-placeholder-val="{{ false }}">
+            <div style="{{ region.bracketTL }}"></div>
+            <div style="{{ region.bracketTR }}"></div>
+            <div style="{{ region.bracketBL }}"></div>
+            <div style="{{ region.bracketBR }}"></div>
+          </sc-if>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div style="min-width:0;overflow:hidden;">
+              <div style="font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:#63758f;letter-spacing:0.8px;">{{ region.apCode }}</div>
+              <div style="{{ region.nameStyle }}">{{ region.name }}</div>
+              <div style="font-size:9.5px;color:#63758f;margin-top:3px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ region.communitiesText }}</div>
+            </div>
+            <div style="width:{{ region.ringSize }}px;height:{{ region.ringSize }}px;position:relative;flex-shrink:0;">
+              <div style="width:100%;height:100%;border-radius:50%;background:{{ region.ringBg }};"></div>
+              <div style="position:absolute;inset:3px;border-radius:50%;background:#121d2e;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;color:{{ region.ringTextColor }};font-size:{{ region.ringFontSize }}px;">{{ region.riskPct }}</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-top:12px;">
+            <div>
+              <div style="font-size:8.5px;color:#63758f;letter-spacing:0.5px;">TEMP</div>
+              <div style="font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:#dbe3ee;">{{ region.tempStr }}</div>
+            </div>
+            <div>
+              <div style="font-size:8.5px;color:#63758f;letter-spacing:0.5px;">CHUVA</div>
+              <div style="font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:#dbe3ee;">{{ region.rainStr }}</div>
+            </div>
+            <div>
+              <div style="font-size:8.5px;color:#63758f;letter-spacing:0.5px;">TRÂNS.</div>
+              <div style="display:flex;align-items:flex-end;gap:2px;height:11px;margin-top:2px;">
+                <sc-for list="{{ region.trafficBars }}" as="bar" hint-placeholder-count="3">
+                  <div style="width:4px;border-radius:1px;height:{{ bar.h }}px;background:{{ bar.c }};"></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ region.isHero }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:14px;padding:11px 13px;border-radius:8px;background:rgba(255,255,255,0.03);border-left:2px solid {{ region.ringTextColor }};position:relative;overflow:hidden;">
+              <div style="{{ region.heroGlowStyle }}"></div>
+              <div style="font-size:9px;letter-spacing:0.8px;color:#63758f;position:relative;">REGIÃO PRIORITÁRIA</div>
+              <div style="font-size:12.5px;color:#c7d2e0;line-height:1.4;margin-top:4px;position:relative;">{{ region.heroNote }}</div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;">🔌</span>
+              <span style="font-size:10.5px;color:#63758f;">Transformadores</span>
+            </div>
+            <div style="{{ region.transformerStyle }}">{{ region.transformerText }}</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <svg viewBox="0 0 100 26" preserveAspectRatio="none" style="width:100%;height:26px;display:block;">
+              <polyline points="{{ region.sparkPoints }}" fill="none" stroke="{{ region.sparkColor }}" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            </svg>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.06);">
+            <div style="{{ region.alertPillStyle }}">{{ region.alertLabel }}</div>
+            <div style="text-align:right;">
+              <div style="font-size:8.5px;color:#63758f;letter-spacing:0.5px;">OCORR.</div>
+              <div style="font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:{{ region.occColor }};">{{ region.occurrences }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ hasActiveEvent }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:rgba(6,10,16,0.45);backdrop-filter:blur(1.5px);z-index:9;animation:drawerFade 0.35s ease;"></div>
+    </sc-if>
+
+    <sc-if value="{{ hasArrow }}" hint-placeholder-val="{{ false }}">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:10;pointer-events:none;overflow:visible;">
+        <defs>
+          <marker id="jarvisArrow" markerWidth="9" markerHeight="9" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="{{ arrowColor }}"></path>
+          </marker>
+        </defs>
+        <line x1="{{ arrowX1 }}" y1="{{ arrowY1 }}" x2="{{ arrowX2 }}" y2="{{ arrowY2 }}" stroke="{{ arrowColor }}" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#jarvisArrow)" style="animation:arrowDash 0.7s linear infinite;"></line>
+        <circle r="3.5" fill="{{ arrowColor }}" style="{{ arrowDotStyle }}">
+          <animateMotion dur="1.3s" repeatCount="indefinite" path="{{ arrowMotionPath }}"></animateMotion>
+        </circle>
+      </svg>
+    </sc-if>
+
+    <!-- EVENT DETAIL DRAWER (right) -->
+    <div style="{{ panelStyle }}">
+      <div style="{{ panelAccentStyle }}"></div>
+      <div style="position:relative;padding:20px 22px;display:flex;flex-direction:column;height:100%;overflow:hidden;box-sizing:border-box;">
+        <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:#63758f;letter-spacing:1px;">{{ eventApCode }} · {{ eventTypeCode }}</div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:10px;">
+          <div>
+            <div style="font-size:19px;font-weight:800;color:#eef2f7;line-height:1.2;">{{ eventRegionName }}</div>
+            <div style="font-size:11.5px;font-weight:600;{{ eventAccentStyle }}margin-top:5px;">{{ eventTitle }}</div>
+          </div>
+          <div style="width:42px;height:42px;position:relative;flex-shrink:0;">
+            <div style="width:100%;height:100%;border-radius:50%;background:{{ eventRingBg }};"></div>
+            <div style="position:absolute;inset:3px;border-radius:50%;background:#0f1927;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div style="font-size:13px;font-weight:700;font-family:'IBM Plex Mono',monospace;{{ eventAccentStyle }}line-height:1;">{{ eventRiskPct }}</div>
+              <div style="font-size:5.5px;color:#63758f;letter-spacing:0.4px;margin-top:1px;">RISCO</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:0;flex:1;min-height:0;overflow:auto;">
+          <sc-for list="{{ eventLines }}" as="line" hint-placeholder-count="3">
+            <div style="display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);animation:lineIn 0.35s ease both;animation-delay:{{ line.key }}00ms;">
+              <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:#3d4d63;flex-shrink:0;">{{ line.idx }}</span>
+              <span style="font-size:12.5px;color:#c7d2e0;line-height:1.4;">{{ line.text }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:8.5px;font-family:'IBM Plex Mono',monospace;color:#4a5a70;letter-spacing:0.8px;">{{ eventTimeStr }} · AO VIVO</div>
+          <div style="{{ eventPulseDotStyle }}"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA FEEDS STATUS STRIP -->
+  <div style="flex-shrink:0;display:flex;align-items:center;gap:0;background:#0a1220;border-top:1px solid rgba(255,255,255,0.06);overflow-x:auto;">
+    <div style="font-size:8.5px;letter-spacing:0.8px;color:#4a5a70;font-weight:700;padding:7px 14px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.06);white-space:nowrap;">FONTES DE DADOS</div>
+    <sc-for list="{{ dataFeeds }}" as="feed" hint-placeholder-count="8">
+      <div style="display:flex;align-items:center;gap:6px;padding:7px 13px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.045);">
+        <span style="{{ feed.dotStyle }}"></span>
+        <span style="font-size:10px;color:#8fa0b8;font-weight:600;white-space:nowrap;">{{ feed.name }}</span>
+        <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:#3d4d63;white-space:nowrap;">{{ feed.latency }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- BOTTOM SHORTCUT BAR -->
+  <div style="flex-shrink:0;display:flex;align-items:center;background:#0e1a2b;border-top:1px solid rgba(255,255,255,0.06);overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:#ff8080;letter-spacing:0.8px;padding:9px 16px;flex-shrink:0;border-right:1px solid rgba(255,255,255,0.06);">
+      <span style="width:6px;height:6px;border-radius:50%;background:#ff6b6b;animation:livedot 1s ease-in-out infinite;"></span>
+      AO VIVO
+    </div>
+    <div style="flex:1;overflow:hidden;white-space:nowrap;position:relative;padding:9px 0;">
+      <div style="display:inline-block;font-size:12px;color:#8fa0b8;animation:tickerScroll 34s linear infinite;">{{ tickerText }}</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;accentTheme&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;teal&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;teal&quot;, &quot;blue&quot;, &quot;violet&quot;], &quot;section&quot;: &quot;Aparência&quot; }
+}">
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+function rand(min, max) { return min + Math.random() * (max - min); }
+
+function severityColors(sev) {
+  if (sev === 2) return { border: '#e6534f', bg: 'rgba(230,83,79,0.12)', text: '#ff9591', label: 'CRÍTICO' };
+  if (sev === 1) return { border: '#dda23c', bg: 'rgba(221,162,60,0.12)', text: '#f0c069', label: 'ATENÇÃO' };
+  return { border: '#17c9b5', bg: 'rgba(23,201,181,0.12)', text: '#5fe8d6', label: 'NORMAL' };
+}
+
+const PANEL_WIDTH = 340;
+
+const NAV_TABS = ['Regiões', 'Chuva', 'Trânsito', 'Câmeras', 'Sentinela', 'Meteorologia'];
+
+class Component extends DCLogic {
+  mainEl = null;
+  setMainRef = (el) => { this.mainEl = el; };
+  cardRefs = {};
+  mapRefs = {};
+
+  state = {
+    now: new Date(),
+    activeTab: 'Regiões',
+    view: 'grid',
+    arrow: null,
+    riskHistory: {},
+    eventLog: [],
+    regions: [
+      { id: 'centro', ap: 'AP1', name: 'Centro', lat: -22.9068, lng: -43.1958, temp: 29, tempMin: 24, tempMax: 34, rain: 12, trafficIdx: 1, occurrences: 3, powerIdx: 0, vandalism: 1, communities: ['Providência', 'Pinto', 'Mangueira'], transformersTotal: 14, transformersDown: 0, mapX: 46, mapY: 44 },
+      { id: 'zs', ap: 'AP2', name: 'Zona Sul', lat: -22.9707, lng: -43.1823, temp: 27, tempMin: 22, tempMax: 32, rain: 8, trafficIdx: 2, occurrences: 5, powerIdx: 0, vandalism: 0, communities: ['Rocinha', 'Vidigal', 'Cantagalo'], transformersTotal: 19, transformersDown: 0, mapX: 40, mapY: 66 },
+      { id: 'gt', ap: 'AP2', name: 'Grande Tijuca', lat: -22.9271, lng: -43.2306, temp: 28, tempMin: 23, tempMax: 33, rain: 22, trafficIdx: 1, occurrences: 2, powerIdx: 1, vandalism: 2, communities: ['Borel', 'Formiga', 'Salgueiro'], transformersTotal: 16, transformersDown: 1, mapX: 52, mapY: 40 },
+      { id: 'zn', ap: 'AP3', name: 'Zona Norte', lat: -22.8752, lng: -43.2698, temp: 30, tempMin: 25, tempMax: 36, rain: 34, trafficIdx: 2, occurrences: 9, powerIdx: 1, vandalism: 3, communities: ['Complexo do Alemão', 'Manguinhos', 'Vila Kennedy'], transformersTotal: 22, transformersDown: 2, mapX: 58, mapY: 27 },
+      { id: 'ig', ap: 'AP3', name: 'Ilha do Governador', lat: -22.8095, lng: -43.2153, temp: 29, tempMin: 24, tempMax: 34, rain: 18, trafficIdx: 0, occurrences: 1, powerIdx: 0, vandalism: 0, communities: ['Cocotá', 'Jardim Guanabara'], transformersTotal: 9, transformersDown: 0, mapX: 74, mapY: 22 },
+      { id: 'barra', ap: 'AP4', name: 'Barra da Tijuca', lat: -23.0045, lng: -43.3651, temp: 28, tempMin: 23, tempMax: 33, rain: 15, trafficIdx: 2, occurrences: 4, powerIdx: 0, vandalism: 1, communities: ['Vila Autódromo', 'Rio das Pedras'], transformersTotal: 17, transformersDown: 0, mapX: 22, mapY: 72 },
+      { id: 'bangu', ap: 'AP5', name: 'Bangu', lat: -22.8756, lng: -43.4653, temp: 31, tempMin: 26, tempMax: 37, rain: 45, trafficIdx: 1, occurrences: 7, powerIdx: 2, vandalism: 4, communities: ['Gericinó', 'Padre Miguel', 'Vila Kosmos'], transformersTotal: 18, transformersDown: 3, mapX: 20, mapY: 40 },
+      { id: 'cg', ap: 'AP5', name: 'Campo Grande', lat: -22.9028, lng: -43.5615, temp: 32, tempMin: 27, tempMax: 38, rain: 52, trafficIdx: 2, occurrences: 11, powerIdx: 2, vandalism: 5, communities: ['Vila do Céu', 'Nova Aliança', 'Jardim Maravilha'], transformersTotal: 21, transformersDown: 4, mapX: 12, mapY: 55 },
+    ],
+    liveWeatherOn: false,
+    dataFeeds: [
+      { name: 'AlertaRio', latency: '210ms', ok: true },
+      { name: 'CEMADEN', latency: '340ms', ok: true },
+      { name: 'Sirenes COR', latency: '95ms', ok: true },
+      { name: 'Waze', latency: '480ms', ok: true },
+      { name: 'Hexagon CSI', latency: '265ms', ok: true },
+      { name: 'ArcGIS Rio', latency: '190ms', ok: true },
+      { name: 'RainViewer', latency: '520ms', ok: true },
+      { name: 'Light SFTP', latency: '610ms', ok: true },
+    ],
+  };
+
+  componentDidMount() {
+    this.clockTimer = setInterval(() => this.setState({ now: new Date() }), 1000);
+    this.tickTimer = setInterval(() => this.tick(), 2200);
+    this.eventTimer = setInterval(() => this.triggerEvent(), 6500);
+    setTimeout(() => this.triggerEvent(), 1400);
+    this.fetchLiveWeather();
+    this.weatherTimer = setInterval(() => this.fetchLiveWeather(), 5 * 60 * 1000);
+  }
+
+  async fetchLiveWeather() {
+    const regions = this.state.regions;
+    const lats = regions.map((r) => r.lat).join(',');
+    const lngs = regions.map((r) => r.lng).join(',');
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,precipitation&timezone=America%2FSao_Paulo`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [data];
+      this.setState((s) => ({
+        liveWeatherOn: true,
+        regions: s.regions.map((r, i) => {
+          const d = list[i];
+          if (!d || !d.current) return r;
+          return { ...r, temp: d.current.temperature_2m, rain: clamp(d.current.precipitation * 20, 0, 100), liveWeather: true };
+        }),
+      }));
+    } catch (e) {
+      this.setState({ liveWeatherOn: false });
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.clockTimer);
+    clearInterval(this.weatherTimer);
+    clearInterval(this.tickTimer);
+    clearInterval(this.eventTimer);
+    clearTimeout(this.eventClearTimer);
+    clearTimeout(this.remeasureTimer);
+  }
+
+  buildEventForRegion(region) {
+    const streetMap = {
+      centro: ['Av. Presidente Vargas', 'Rua Uruguaiana', 'Av. Rio Branco'],
+      zs: ['Av. Vieira Souto', 'Rua Visconde de Pirajá', 'Av. Niemeyer'],
+      gt: ['Rua Conde de Bonfim', 'Av. Maracanã', 'Rua São Francisco Xavier'],
+      zn: ['Av. Suburbana', 'Av. Dom Hélder Câmara', 'Rua Leopoldina Rego'],
+      ig: ['Estrada do Galeão', 'Av. Governador Leonel de Moura Brizola'],
+      barra: ['Av. das Américas', 'Av. Ayrton Senna'],
+      bangu: ['Rua Fonseca', 'Estrada do Mendanha', 'Av. Brasil'],
+      cg: ['Estrada do Guandu', 'Av. Santa Cruz'],
+    };
+    const streets = streetMap[region.id] || ['via principal da região'];
+    const street = streets[Math.floor(Math.random() * streets.length)];
+
+    const pool = [];
+    const accMm = (region.rain * 0.7 + rand(0, 12)).toFixed(0);
+    const rateMm = (region.rain / 9 + rand(0.2, 2.5)).toFixed(1);
+    pool.push({
+      type: 'PLU-04',
+      title: 'PLUVIÔMETRO ATIVOU',
+      lines: [
+        `${rateMm} mm na última hora, perto de ${street}`,
+        `${accMm} mm acumulados desde as 3h`,
+        region.rain > 50
+          ? 'Esse ritmo costuma alagar a região em 20–30 min — vale checar bueiros críticos'
+          : region.rain > 25
+          ? 'Chuva chata mas ainda controlável, sem histórico de alagamento nesse volume'
+          : 'Nada preocupante, chuva fraca e isolada',
+      ],
+    });
+    if (region.trafficIdx === 2) {
+      pool.push({
+        type: 'TRF-11',
+        title: 'TRÂNSITO TRAVOU',
+        lines: [
+          `${street} andando a menos de 12 km/h`,
+          'Provavelmente reflexo da chuva ou um acidente — sem confirmação ainda',
+          'CET-Rio já foi avisado, sem previsão de liberação',
+        ],
+      });
+    }
+    if (region.occurrences > 5) {
+      pool.push({
+        type: 'OCR-02',
+        title: 'MAIS UMA OCORRÊNCIA ABERTA',
+        lines: [
+          `${region.occurrences} chamados abertos agora nessa região, acima da média do dia`,
+          'Uma equipe de campo foi mandada pra checar de perto',
+          'Sem confirmação do que é ainda — atualiza em ~15 min',
+        ],
+      });
+    }
+    if (region.powerIdx >= 1) {
+      pool.push({
+        type: 'ENE-09',
+        title: region.powerIdx === 2 ? 'FALTA DE ENERGIA CONFIRMADA' : 'INSTABILIDADE NA REDE ELÉTRICA',
+        lines: [
+          `Comunidades afetadas: ${region.communities.slice(0, 2).join(', ')}`,
+          region.powerIdx === 2
+            ? 'Concessionária já foi acionada, sem previsão de normalização'
+            : 'Oscilação registrada, ainda não virou queda total',
+          `Perto de ${street}`,
+        ],
+      });
+    }
+    if (region.transformersDown >= 1) {
+      pool.push({
+        type: 'TRF-13',
+        title: region.transformersDown >= 3 ? 'MÚLTIPLOS TRANSFORMADORES CAÍRAM' : 'TRANSFORMADOR EM FALHA',
+        lines: [
+          `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operação`,
+          `Concentrado perto de ${street}`,
+          region.transformersDown >= 3
+            ? 'Light já foi acionada, equipe de manutenção a caminho'
+            : 'Sob observação, ainda não afetou o fornecimento geral',
+        ],
+      });
+    }
+    if (region.vandalism > 2) {
+      pool.push({
+        type: 'VAN-05',
+        title: 'REGISTRO DE VANDALISMO',
+        lines: [
+          `${region.vandalism} ocorrências de vandalismo nas últimas 24h nessa região`,
+          `Foco em ${region.communities[0]}`,
+          'Guarda Municipal notificada para reforço na área',
+        ],
+      });
+    }
+    pool.push({
+      type: 'CAM-07',
+      title: 'CÂMERA VIROU PRA CÁ',
+      lines: [
+        `Operador redirecionou a câmera mais próxima de ${street}`,
+        `${region.temp.toFixed(1)}°C no sensor local agora`,
+        'Ainda sem nada visível de anormal na imagem',
+      ],
+    });
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  triggerEvent() {
+    const regions = this.state.regions;
+    const region = regions[Math.floor(Math.random() * regions.length)];
+    const ev = this.buildEventForRegion(region);
+    const activeEvent = {
+      regionId: region.id,
+      regionName: region.name,
+      ap: region.ap,
+      startedAt: Date.now(),
+      ...ev,
+    };
+    clearTimeout(this.eventClearTimer);
+    this.setState((s) => ({
+      activeEvent,
+      eventLog: [{ ...activeEvent, logId: activeEvent.startedAt + '-' + activeEvent.regionId }, ...s.eventLog].slice(0, 6),
+    }), () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => { this.measureArrow(); this.forceUpdate(); }));
+      clearTimeout(this.remeasureTimer);
+      this.remeasureTimer = setTimeout(() => { this.measureArrow(); this.forceUpdate(); }, 480);
+    });
+    this.eventClearTimer = setTimeout(() => this.setState({ activeEvent: null, arrow: null }), 5400);
+  }
+
+  measureArrow() {
+    const ev = this.state.activeEvent;
+    const mainEl = this.mainEl;
+    const cardEl = ev && this.cardRefs[ev.regionId];
+    if (!ev || !mainEl || !cardEl) return;
+    const mainRect = mainEl.getBoundingClientRect();
+    const cardRect = cardEl.getBoundingClientRect();
+    const x1 = cardRect.right - mainRect.left + 6;
+    const y1 = cardRect.top - mainRect.top + cardRect.height / 2;
+    const x2 = mainRect.width - PANEL_WIDTH - 6;
+    const y2 = mainRect.height / 2;
+    this.setState({ arrow: { x1, y1, x2, y2 } });
+  }
+
+  tick() {
+    this.setState((s) => {
+      const dataFeeds = s.dataFeeds.map((f) => {
+        const blip = Math.random() < 0.04;
+        const latency = blip ? null : Math.round(80 + Math.random() * 550);
+        return { ...f, ok: !blip, latency: blip ? 'timeout' : `${latency}ms` };
+      });
+      const regions = s.regions.map((r) => {
+        const temp = r.liveWeather ? r.temp : clamp(r.temp + rand(-0.35, 0.35), r.tempMin, r.tempMax);
+        const rain = r.liveWeather ? r.rain : clamp(r.rain + rand(-3.5, 3.5), 0, 100);
+        const occDelta = Math.random() < 0.18 ? (Math.random() < 0.5 ? -1 : 1) : 0;
+        const occurrences = clamp(r.occurrences + occDelta, 0, 40);
+        const trafficIdx = clamp(r.trafficIdx + (Math.random() < 0.22 ? (Math.random() < 0.5 ? -1 : 1) : 0), 0, 2);
+        return { ...r, temp, rain, occurrences, trafficIdx };
+      });
+      const riskHistory = { ...s.riskHistory };
+      regions.forEach((r) => {
+        const risk = this.riskScore(r);
+        const prev = riskHistory[r.id] || [];
+        riskHistory[r.id] = [...prev, risk].slice(-14);
+      });
+      return { regions, riskHistory, dataFeeds };
+    });
+  }
+
+  computeSeverity(region) {
+    let score = 0;
+    if (region.rain > 60) score += 2; else if (region.rain > 30) score += 1;
+    if (region.occurrences > 8) score += 2; else if (region.occurrences > 4) score += 1;
+    if (region.trafficIdx === 2) score += 1;
+    if (region.powerIdx === 2) score += 2; else if (region.powerIdx === 1) score += 1;
+    if (region.vandalism > 3) score += 1;
+    if (region.transformersDown >= 3) score += 2; else if (region.transformersDown >= 1) score += 1;
+    if (score >= 3) return 2;
+    if (score >= 1) return 1;
+    return 0;
+  }
+
+  riskScore(region) {
+    const rainPart = region.rain * 0.5;
+    const occPart = Math.min(region.occurrences, 20) * 3;
+    const trafficPart = region.trafficIdx * 12;
+    const powerPart = region.powerIdx * 14;
+    const vandalPart = Math.min(region.vandalism, 10) * 2;
+    const transformerPart = Math.min(region.transformersDown, 6) * 9;
+    return clamp(Math.round(rainPart * 0.24 + occPart * 0.28 + trafficPart * 0.15 + powerPart * 0.12 + vandalPart * 0.07 + transformerPart * 0.14), 2, 98);
+  }
+
+  renderVals() {
+    const activeEvent = this.state.activeEvent;
+    const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
+    const hasActiveEventEarly = !!activeEvent;
+    const railWidthEarly = 236;
+    const measuredWidthEarly = this.mainEl ? this.mainEl.clientWidth : 0;
+    const availPxEarly = Math.max(measuredWidthEarly - railWidthEarly - (hasActiveEventEarly ? PANEL_WIDTH : 0), 0);
+    const gridPad = 22, gridGap = 14, minCardWidth = 200;
+    const gridContentWidth = Math.max(availPxEarly - gridPad * 2, 0);
+    const numCols = Math.max(1, Math.floor((gridContentWidth + gridGap) / (minCardWidth + gridGap)));
+    const cardWidth = numCols > 0 ? Math.floor((gridContentWidth - gridGap * (numCols - 1)) / numCols) : gridContentWidth;
+
+    const scoredList = this.state.regions.map((r) => ({ r, sev: this.computeSeverity(r), risk: this.riskScore(r) }));
+    const heroIdx = scoredList.reduce((best, cur, i) => (cur.risk > scoredList[best].risk ? i : best), 0);
+
+    const regions = scoredList.map(({ r, sev, risk }, i) => {
+      const sc = severityColors(sev);
+      const isEventRegion = !!activeEvent && activeEvent.regionId === r.id;
+      const isHero = i === heroIdx;
+      const flashVars = isEventRegion ? `box-shadow:0 0 0 1.5px ${sc.border},0 10px 30px -6px ${sc.border}66;animation:cardPop 0.5s cubic-bezier(.2,.9,.3,1.3) forwards;` : '';
+      const thisCardWidth = isHero && numCols > 1 ? cardWidth * 2 + gridGap : cardWidth;
+
+      const cardStyle = `position:relative;flex:0 0 ${thisCardWidth}px;width:${thisCardWidth}px;box-sizing:border-box;background:linear-gradient(165deg, rgba(255,255,255,0.025), rgba(255,255,255,0) 40%);background-color:#111d30;border:1px solid ${isEventRegion ? sc.border : 'rgba(255,255,255,0.07)'};border-top:2px solid ${sc.border}${isEventRegion ? '' : '99'};border-radius:10px;padding:16px 18px;box-shadow:0 8px 20px rgba(0,0,0,0.28);transition:transform 0.25s ease, box-shadow 0.25s ease;${flashVars}`;
+
+      const trafficBars = [
+        { h: 5, c: r.trafficIdx >= 0 ? '#17c9b5' : 'rgba(255,255,255,0.12)' },
+        { h: 8, c: r.trafficIdx >= 1 ? '#dda23c' : 'rgba(255,255,255,0.12)' },
+        { h: 11, c: r.trafficIdx >= 2 ? '#e6534f' : 'rgba(255,255,255,0.12)' },
+      ];
+
+      const occColor = r.occurrences > 8 ? '#ff9591' : r.occurrences > 4 ? '#f0c069' : '#dbe3ee';
+      const transformerSc = r.transformersDown >= 3 ? severityColors(2) : r.transformersDown >= 1 ? severityColors(1) : severityColors(0);
+      const transformerText = `${r.transformersTotal - r.transformersDown}/${r.transformersTotal} ativos`;
+      const transformerStyle = `font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:${transformerSc.text};`;
+      const alertPillStyle = `font-size:9px;font-weight:700;letter-spacing:0.4px;padding:3px 8px;border-radius:20px;background:${sc.bg};color:${sc.text};border:1px solid ${sc.border}44;`;
+      const ringSize = isHero ? 46 : 38;
+      const ringFontSize = isHero ? 14 : 12;
+      const ringBg = `conic-gradient(${sc.border} ${risk}%, rgba(255,255,255,0.08) 0)`;
+
+      let heroNote = '';
+      let heroGlowStyle = '';
+      if (isHero) {
+        heroNote = sev === 2
+          ? 'Região com maior risco combinado agora — priorize monitoramento aqui.'
+          : sev === 1
+          ? 'Indicadores subindo nessa região, ainda dentro do esperado.'
+          : 'Maior risco relativo do momento, mas sem nada crítico em aberto.';
+        heroGlowStyle = `position:absolute;inset:0;background:radial-gradient(circle at 0% 50%, ${sc.border}18, transparent 70%);animation:heroGlow 2.4s ease-in-out infinite;`;
+      }
+
+      if (!this.cardRefs) this.cardRefs = {};
+      const setRef = (el) => { this.cardRefs[r.id] = el; };
+      const communitiesText = (r.communities || []).slice(0, 2).join(' · ');
+
+      const hist = (this.state.riskHistory[r.id] || []).concat(risk).slice(-14);
+      const sparkW = 100, sparkH = 26;
+      const maxH = Math.max(...hist, 10);
+      const stepX = hist.length > 1 ? sparkW / (hist.length - 1) : sparkW;
+      const points = hist.map((v, idx) => `${(idx * stepX).toFixed(1)},${(sparkH - (v / maxH) * sparkH).toFixed(1)}`).join(' ');
+      const sparkColor = sc.border;
+
+      return {
+        ...r,
+        apCode: r.ap,
+        communitiesText,
+        isEventRegion,
+        bracketTL: `position:absolute;top:-1px;left:-1px;width:14px;height:14px;border-top:2px solid ${sc.border};border-left:2px solid ${sc.border};border-radius:6px 0 0 0;animation:bracketPulse 1.6s ease-in-out infinite;`,
+        bracketTR: `position:absolute;top:-1px;right:-1px;width:14px;height:14px;border-top:2px solid ${sc.border};border-right:2px solid ${sc.border};border-radius:0 6px 0 0;animation:bracketPulse 1.6s ease-in-out infinite;`,
+        bracketBL: `position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-bottom:2px solid ${sc.border};border-left:2px solid ${sc.border};border-radius:0 0 0 6px;animation:bracketPulse 1.6s ease-in-out infinite;`,
+        bracketBR: `position:absolute;bottom:-1px;right:-1px;width:14px;height:14px;border-bottom:2px solid ${sc.border};border-right:2px solid ${sc.border};border-radius:0 0 6px 0;animation:bracketPulse 1.6s ease-in-out infinite;`,
+        isHero,
+        heroNote,
+        heroGlowStyle,
+        setRef,
+        nameStyle: `font-weight:700;color:#eef2f7;margin-top:3px;font-size:${isHero ? 18 : 15}px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;`,
+        tempStr: `${r.temp.toFixed(1)}°`,
+        rainStr: `${Math.round(r.rain)}%`,
+        trafficLabel: trafficLabels[r.trafficIdx],
+        trafficBars,
+        occColor,
+        alertLabel: sc.label,
+        alertPillStyle,
+        riskPct: risk,
+        ringSize,
+        ringFontSize,
+        ringBg,
+        ringTextColor: sc.text,
+        cardStyle,
+        sparkPoints: points,
+        sparkColor,
+        transformerText,
+        transformerStyle,
+        setMapRef: (el) => { this.mapRefs[r.id] = el; },
+        mapPinWrapStyle: `position:absolute;left:${r.mapX}%;top:${r.mapY}%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:default;z-index:${isEventRegion ? 3 : 1};`,
+        mapPinRingStyle: isEventRegion
+          ? `position:absolute;width:44px;height:44px;border-radius:50%;background:${sc.border}33;top:50%;left:50%;transform:translate(-50%,-50%);animation:bracketPulse 1.6s ease-in-out infinite;--flash-c:${sc.border};--flash-c2:${sc.border}00;`
+          : '',
+        mapPinStyle: `width:26px;height:26px;border-radius:50%;background:${sc.border};color:#0c1420;font-size:10px;font-weight:800;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px rgba(12,20,32,0.85), 0 4px 10px rgba(0,0,0,0.4);position:relative;`,
+        mapLabelStyle: `font-size:10.5px;font-weight:600;color:#dbe3ee;white-space:nowrap;background:rgba(12,20,32,0.75);padding:2px 7px;border-radius:5px;`,
+      };
+    });
+
+    const rankedRegions = [...scoredList]
+      .sort((a, b) => b.risk - a.risk)
+      .slice(0, 5)
+      .map(({ r, sev, risk }, i) => ({ name: r.name, risk, dotColor: severityColors(sev).border, rank: String(i + 1).padStart(2, '0') }));
+
+    const totalOcc = regions.reduce((a, r) => a + r.occurrences, 0);
+    const alertCount = regions.filter((r) => r.alertLabel !== 'NORMAL').length;
+    const maxSev = Math.max(...scoredList.map((s) => s.sev));
+    const stageNum = maxSev === 2 ? 3 : maxSev === 1 ? 2 : 1;
+    const avgTemp = this.state.regions.reduce((a, r) => a + r.temp, 0) / this.state.regions.length;
+    const heatLevel = avgTemp > 33 ? 3 : avgTemp > 29 ? 2 : 1;
+
+    const stageSc = maxSev === 2 ? severityColors(2) : maxSev === 1 ? severityColors(1) : severityColors(0);
+    const cityStatusLabel = maxSev === 2 ? 'Estágio 3 · Crítico' : maxSev === 1 ? 'Estágio 2 · Atenção' : 'Estágio 1 · Normal';
+    const cityStatusPillStyle = `display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;background:${stageSc.bg};border:1px solid ${stageSc.border}55;color:${stageSc.text};font-size:10.5px;font-weight:700;letter-spacing:0.3px;`;
+    const avgTempStr = `${avgTemp.toFixed(1)}°C`;
+
+    const cityRiskPct = Math.round(scoredList.reduce((a, s) => a + s.risk, 0) / scoredList.length);
+    const cityRingSc = severityColors(maxSev);
+    const cityRingBg = `conic-gradient(${cityRingSc.border} ${cityRiskPct}%, rgba(255,255,255,0.08) 0)`;
+
+    const navTabs = NAV_TABS.map((label) => {
+      const active = label === this.state.activeTab;
+      const icons = { 'Regiões': '📍', 'Chuva': '💧', 'Trânsito': '🚦', 'Câmeras': '🎥', 'Sentinela': '🛰️', 'Meteorologia': '⛅' };
+      const style = `font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;white-space:nowrap;cursor:default;${
+        active ? 'background:#17c9b5;color:#0c1420;' : 'background:#16253b;color:#9fb0c7;'
+      }`;
+      return { label, style, icon: icons[label] || '' };
+    });
+
+    const alertRegions = regions.filter((r) => r.riskPct > 40);
+    const tickerItems = alertRegions.length
+      ? alertRegions.map((r) => `${r.name}: ${r.occurrences} ocorrências em aberto, chuva em ${r.rainStr} — vale acompanhar`)
+      : ['Nada fora do comum nas últimas horas', 'Equipes seguem em ronda de rotina pela cidade'];
+    const tickerLine = tickerItems.join('     ·     ');
+    const tickerText = `${tickerLine}     ·     ${tickerLine}`;
+
+    const now = this.state.now;
+    const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    let hasActiveEvent = false, eventTitle = '', eventTypeCode = '', eventRegionName = '', eventApCode = '', eventLines = [], eventAccentStyle = '', eventTimeStr = '', eventRiskPct = '', evSc = severityColors(0);
+    if (activeEvent) {
+      const evRegion = this.state.regions.find((rr) => rr.id === activeEvent.regionId);
+      const evSev = evRegion ? this.computeSeverity(evRegion) : 0;
+      evSc = severityColors(evSev);
+      hasActiveEvent = true;
+      eventTitle = activeEvent.title;
+      eventTypeCode = activeEvent.type;
+      eventRegionName = activeEvent.regionName;
+      eventApCode = activeEvent.ap;
+      eventLines = activeEvent.lines.map((line, idx) => ({ text: line, idx: String(idx + 1).padStart(2, '0'), key: idx }));
+      eventTimeStr = new Date(activeEvent.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      eventAccentStyle = `color:${evSc.text};`;
+      eventRiskPct = evRegion ? this.riskScore(evRegion) : '';
+    }
+
+    const panelStyle = `position:absolute;right:0;top:0;bottom:0;width:${PANEL_WIDTH}px;z-index:11;overflow:hidden;transform:translateX(${hasActiveEvent ? '0' : '105%'});transition:transform 0.4s cubic-bezier(.3,.9,.3,1);background:#0f1927;border-left:1px solid rgba(255,255,255,0.08);box-shadow:${hasActiveEvent ? '-30px 0 60px rgba(0,0,0,0.4)' : 'none'};`;
+    const panelAccentStyle = `height:3px;width:100%;background:${evSc.border};`;
+    const eventPulseDotStyle = `width:5px;height:5px;border-radius:50%;background:${evSc.border};animation:livedot 1.4s ease-in-out infinite;`;
+    const eventRingBg = `conic-gradient(${evSc.border} ${eventRiskPct || 0}%, rgba(255,255,255,0.08) 0)`;
+
+    const railWidth = 236;
+    const measuredWidth = this.mainEl ? this.mainEl.clientWidth : 0;
+    const availPx = Math.max(measuredWidth - railWidth - (hasActiveEvent ? PANEL_WIDTH : 0), 0);
+    const contentWidthStyle = measuredWidth ? `width:${availPx}px;` : `flex:1;min-width:0;`;
+    const gridWrapStyle = `padding:20px ${gridPad}px;display:flex;flex-wrap:wrap;gap:${gridGap}px;flex:none;${contentWidthStyle}box-sizing:border-box;align-content:start;overflow-y:auto;overflow-x:hidden;`;
+    const mapWrapStyle = `flex:none;${contentWidthStyle}position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 30%, rgba(23,201,181,0.05), transparent 60%);`;
+
+    const rainAvg = this.state.regions.reduce((a, r) => a + r.rain, 0) / this.state.regions.length;
+    const transformersDownTotal = this.state.regions.reduce((a, r) => a + r.transformersDown, 0);
+    const prevKpi = this.prevKpiVals || {};
+    const rawKpis = [
+      { key: 'occ', label: 'OCORRÊNCIAS ATIVAS', value: totalOcc, display: String(totalOcc), icon: '📟', sev: totalOcc > 30 ? 1 : 0 },
+      { key: 'alert', label: 'REGIÕES EM ALERTA', value: alertCount, display: String(alertCount), icon: '⚠️', sev: alertCount >= 4 ? 2 : alertCount >= 2 ? 1 : 0 },
+      { key: 'rain', label: 'CHUVA MÉDIA', value: Math.round(rainAvg), display: `${Math.round(rainAvg)}%`, icon: '💧', sev: rainAvg > 35 ? 1 : 0 },
+      { key: 'transf', label: 'TRANSFORMADORES OFF', value: transformersDownTotal, display: String(transformersDownTotal), icon: '🔌', sev: transformersDownTotal >= 6 ? 2 : transformersDownTotal >= 2 ? 1 : 0 },
+      { key: 'risk', label: 'RISCO DA CIDADE', value: cityRiskPct, display: String(cityRiskPct), icon: '🛰️', sev: maxSev },
+    ];
+    const kpis = rawKpis.map((k) => {
+      const sc = severityColors(k.sev);
+      const prev = prevKpi[k.key];
+      const delta = prev === undefined ? 0 : k.value - prev;
+      const trendUp = delta > 0.05;
+      const trendDown = delta < -0.05;
+      const trendColor = trendUp ? '#ff9591' : trendDown ? '#5fe8d6' : '#63758f';
+      return {
+        label: k.label,
+        value: k.display,
+        icon: k.icon,
+        iconBg: sc.bg,
+        iconBorder: `${sc.border}40`,
+        valueColor: k.sev > 0 ? sc.text : '#eef2f7',
+        barStyle: `position:absolute;left:0;right:0;bottom:0;height:2px;background:${sc.border};opacity:0.9;`,
+        glowStyle: `position:absolute;left:-10%;top:-40%;width:60%;height:180%;background:radial-gradient(circle, ${sc.border}14, transparent 70%);pointer-events:none;`,
+        trendArrow: trendUp ? '▲' : trendDown ? '▼' : '＝',
+        trendVal: trendUp || trendDown ? Math.abs(delta).toFixed(delta % 1 === 0 ? 0 : 1) : '',
+        trendStyle: `font-size:10px;font-weight:700;color:${trendColor};`,
+      };
+    });
+    this.prevKpiVals = Object.fromEntries(rawKpis.map((k) => [k.key, k.value]));
+
+    const arrow = this.state.arrow;
+    const hasArrow = hasActiveEvent && !!arrow;
+    const arrowColor = evSc.border;
+
+    return {
+      mainRef: this.setMainRef,
+      liveWeatherOn: this.state.liveWeatherOn,
+      dataFeeds: this.state.dataFeeds.map((f) => ({
+        ...f,
+        dotStyle: `width:5px;height:5px;border-radius:50%;background:${f.ok ? '#4fe8d3' : '#ff6b6b'};${f.ok ? 'animation:livedot 2.2s ease-in-out infinite;' : ''}`,
+      })),
+      gridWrapStyle,
+      panelStyle,
+      panelAccentStyle,
+      eventRingBg,
+      eventPulseDotStyle,
+      hasArrow,
+      arrowColor,
+      arrowX1: arrow ? arrow.x1 : 0,
+      arrowY1: arrow ? arrow.y1 : 0,
+      arrowX2: arrow ? arrow.x2 : 0,
+      arrowY2: arrow ? arrow.y2 : 0,
+      arrowMotionPath: arrow ? `M${arrow.x1},${arrow.y1} L${arrow.x2},${arrow.y2}` : '',
+      arrowDotStyle: `filter:drop-shadow(0 0 4px ${evSc.border});`,
+      eventRiskPct,
+      time,
+      regions,
+      rankedRegions,
+      apisOnline: '5/5',
+      totalOcc,
+      alertCount,
+      cityRiskPct,
+      cityRingBg,
+      cityStatusLabel,
+      cityStatusPillStyle,
+      avgTempStr,
+      kpis,
+      eventLog: this.state.eventLog.map((ev) => {
+        const evR = this.state.regions.find((rr) => rr.id === ev.regionId);
+        const sc2 = severityColors(evR ? this.computeSeverity(evR) : 0);
+        return {
+          regionName: ev.regionName,
+          title: ev.title,
+          timeStr: new Date(ev.startedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          color: sc2.text,
+        };
+      }),
+      navTabs,
+      tickerText,
+      hasActiveEvent,
+      eventTitle,
+      eventTypeCode,
+      eventRegionName,
+      eventApCode,
+      eventLines,
+      eventTimeStr,
+      eventAccentStyle,
+    };
+  }
+}
+</script>
+</body>
+</html>

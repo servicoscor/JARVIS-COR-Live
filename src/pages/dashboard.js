@@ -1,0 +1,510 @@
+import { pct, timeString } from '../lib/format.js';
+
+const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
+
+export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
+  window.__jarvisOpenRegion = openRegion;
+  window.__jarvisCloseRegion = closeRegion;
+
+  root.innerHTML = `
+    <div class="shell">
+      ${topbar(vm, navigate)}
+      <div class="main">
+        <aside class="rail">
+          <div class="risk-ring" style="background:${vm.cityRing}">
+            <div class="risk-ring-inner">
+              <div>
+                <div class="risk-value">${vm.cityRisk}</div>
+                <div class="section-title" style="margin:4px 0 0">RISCO DA CIDADE</div>
+              </div>
+            </div>
+          </div>
+          <div class="pill" style="${vm.cityStatusStyle};margin:12px auto 0;display:flex;width:max-content">
+            <span class="dot"></span>${vm.cityStatus}
+          </div>
+
+          <div class="section">
+            ${summaryRow('Ocorrencias ativas', vm.totalOcc)}
+            ${summaryRow('Regioes em alerta', vm.alertCount)}
+            ${summaryRow('Temperatura media', vm.avgTemp)}
+            ${summaryRow('Pluviometros ativos', vm.rainStationsTotal || '-')}
+            ${summaryRow('Sirenes online', `${vm.sirensOnline}/${vm.sirensTotal || '-'}`)}
+          </div>
+
+          <div class="section">
+            <div class="section-title">Ocorrencias ativas</div>
+            ${vm.activeOccurrences.length ? vm.activeOccurrences.slice(0, 7).map((occurrence) => `
+              <div class="feed-row">
+                <span style="min-width:0">
+                  <strong style="display:block;color:#dbe3ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${occurrence.regionName}</strong>
+                  <span style="color:${occurrence.severity === 2 ? '#ff9591' : '#f0c069'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${occurrence.title}</span>
+                </span>
+                <span class="mono" style="color:#4a5a70">${occurrence.source}</span>
+              </div>
+            `).join('') : '<div class="feed-row">Sem ocorrencias nas fontes conectadas</div>'}
+          </div>
+
+          <div class="section">
+            <div class="section-title">Boletim COR</div>
+            <div class="summary-row">
+              <span>Estagio</span>
+              <strong class="mono">${vm.corData.cityStage?.label?.replace('Estágio', 'Estagio') || '-'}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Nivel de calor</span>
+              <strong class="mono">${vm.corData.heat ? `NC ${vm.corData.heat.level}` : '-'}</strong>
+            </div>
+            <div style="margin-top:10px;color:#9fb0c7;font-size:11.5px;line-height:1.45">
+              ${vm.corData.forecastNow?.sinotico || 'Aguardando previsao oficial.'}
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Ranking de risco</div>
+            ${vm.ranked.slice(0, 5).map((region, index) => `
+              <div class="rank-row">
+                <span class="mono" style="color:#3d4d63">${String(index + 1).padStart(2, '0')}</span>
+                <span style="flex:1">${region.name}</span>
+                <strong class="mono" style="color:${region.colors.text}">${region.score}</strong>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="section">
+            <div class="section-title">Atividade recente</div>
+            ${vm.eventLog.length ? vm.eventLog.map((event) => `
+              <div class="feed-row">
+                <span style="min-width:0">
+                  <strong style="display:block;color:#dbe3ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${event.regionName}</strong>
+                  <span style="color:#9fb0c7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${event.title}</span>
+                </span>
+                <span class="mono" style="color:#4a5a70">${timeString(new Date(event.startedAt)).slice(0, 5)}</span>
+              </div>
+            `).join('') : '<div class="feed-row">Aguardando eventos</div>'}
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="kpis">
+            ${vm.kpis.map((kpi) => `
+              <div class="kpi">
+                <div class="kpi-label">${kpi.label}</div>
+                <div class="kpi-value">${kpi.value}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="grid">
+            ${regionGrid(vm)}
+          </div>
+        </section>
+      </div>
+      ${feedStrip(vm)}
+      <div class="ticker">${vm.ticker}</div>
+    </div>
+  `;
+
+  root.onclick = (event) => {
+    const target = event.target;
+    const mapButton = target.closest?.('[data-route="map"]');
+    if (mapButton) {
+      navigate('map');
+      return;
+    }
+
+    const openButton = target.closest?.('[data-open-region]');
+    if (openButton) {
+      event.preventDefault();
+      if (vm.openRegionId === openButton.dataset.openRegion) {
+        closeRegion();
+      } else {
+        openRegion(openButton.dataset.openRegion);
+      }
+      return;
+    }
+
+    const closeButton = target.closest?.('[data-close-region]');
+    if (closeButton) {
+      closeRegion();
+      return;
+    }
+
+    if (target.classList?.contains('region-modal')) {
+      closeRegion();
+    }
+  };
+}
+
+function topbar(vm) {
+  return `
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">RIO</div>
+        <div>
+          <div class="title">JARVIS COR</div>
+          <div class="subtitle">Centro de Operacoes e Resiliencia</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div style="text-align:right">
+        <div class="section-title" style="margin:0">HORA LOCAL</div>
+        <div class="mono" data-local-clock style="font-weight:700">${vm.time}</div>
+      </div>
+      ${vm.liveWeather ? '<div class="pill" style="color:#5fb8ff;background:rgba(74,157,255,.1);border-color:rgba(74,157,255,.3)"><span class="dot"></span>Open-Meteo</div>' : ''}
+      ${vm.corLive ? '<div class="pill" style="color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)"><span class="dot"></span>COR APIs</div>' : ''}
+      ${vm.wazeLive ? '<div class="pill" style="color:#f0c069;background:rgba(221,162,60,.1);border-color:rgba(221,162,60,.3)"><span class="dot"></span>Waze</div>' : ''}
+      <button class="pill" data-route="map" type="button">Mapa Operacional</button>
+      <div class="pill" style="color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)"><span class="dot"></span>${vm.feeds.filter((feed) => feed.ok).length}/${vm.feeds.length} APIs</div>
+    </header>
+  `;
+}
+
+function summaryRow(label, value) {
+  return `<div class="summary-row"><span>${label}</span><strong class="mono">${value}</strong></div>`;
+}
+
+function regionGrid(vm) {
+  return vm.regions.map((region) => `
+    ${regionCard(region, vm)}
+    ${vm.openRegionId === region.id ? regionInlineDetailHtml(region, vm) : ''}
+  `).join('');
+}
+
+function regionCard(region, vm) {
+  const ring = `conic-gradient(${region.colors.border} ${region.score}%, rgba(255,255,255,.08) 0)`;
+  return `
+    <article class="card" style="--accent:${region.colors.border}">
+      <div class="card-head">
+        <div style="min-width:0">
+          <div class="ap">${region.ap}</div>
+          <div class="region-name">${region.name}</div>
+          <div class="communities">${region.communities.slice(0, 2).join(' | ')}</div>
+        </div>
+        <div class="mini-ring" style="background:${ring}">
+          <span style="color:${region.colors.text}">${region.score}</span>
+        </div>
+      </div>
+
+      ${miniRegionMap(region, vm)}
+
+      <div class="stats">
+        ${stat('TEMP', `${region.temp.toFixed(1)}C`)}
+        ${stat('CHUVA', pct(region.rain))}
+        ${stat('TRANS.', trafficLabels[region.trafficIdx])}
+      </div>
+      <div class="stats">
+        ${stat('TRANSF.', `${region.transformersTotal - region.transformersDown}/${region.transformersTotal}`)}
+        ${stat('OCORR.', region.occurrences)}
+        ${stat('RISCO', `<span style="color:${region.colors.text}">${region.colors.label}</span>`)}
+      </div>
+      <div class="stats">
+        ${stat('MM 1H', Number.isFinite(region.rainMmH01) ? region.rainMmH01.toFixed(1) : '-')}
+        ${stat('MM 24H', Number.isFinite(region.rainMmH24) ? region.rainMmH24.toFixed(1) : '-')}
+        ${stat('SIRENES', region.sirensTotal ? `${region.sirensOnline}/${region.sirensTotal}` : '-')}
+      </div>
+      <div class="stats">
+        ${stat('WAZE 8+', region.wazeTrustedAlerts || '-')}
+        ${stat('ACID.', region.wazeAccidents || '-')}
+        ${stat('JAM', region.wazeMaxJamLevel || '-')}
+      </div>
+      <button class="region-open-btn${vm.openRegionId === region.id ? ' is-active' : ''}" data-open-region="${region.id}" type="button">${vm.openRegionId === region.id ? 'FECHAR' : 'ABRIR'}</button>
+    </article>
+  `;
+}
+
+function regionInlineDetailHtml(region, vm) {
+  const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
+  const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const rainStations = (vm.corData.rainStations || []).filter((station) => station.regionId === region.id);
+  const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
+  const powerLine = region.transformersDown > 0
+    ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
+    : 'Sem transformador fora no dado atual';
+  return `
+    <section class="region-inline-detail" style="--accent:${region.colors.border}">
+      <div class="region-inline-head">
+        <div>
+          <div class="ap">${region.ap} · ${region.colors.label}</div>
+          <div class="region-inline-title">${region.name}</div>
+          <div class="communities">${region.communities.join(' | ')}</div>
+        </div>
+        <button class="pill region-inline-close" data-close-region type="button">FECHAR</button>
+      </div>
+      <div class="region-inline-map">
+        <iframe
+          title="Mapa de ${region.name}"
+          src="${osmEmbedUrl(region)}"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+        ></iframe>
+      </div>
+      <div class="region-inline-summary">
+        <div class="region-detail-kpis inline">
+          ${detailKpi('Risco', region.score)}
+          ${detailKpi('Ocorr.', occurrences.length)}
+          ${detailKpi('Waze 8+', wazeAlerts.length)}
+          ${detailKpi('Sirenes off', offlineSirens.length)}
+        </div>
+        <div class="region-detail-summary">Transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}.</div>
+        <div class="region-detail-grid inline">
+          <div class="detail-box">
+            <div class="section-title">Ocorrencias</div>
+            ${occurrences.length ? occurrences.slice(0, 5).map((occurrence) => detailLine(occurrence.title, occurrence.lines?.[0] || occurrence.source, occurrence.severity)).join('') : '<div class="detail-empty">Sem ocorrencias derivadas das fontes conectadas.</div>'}
+          </div>
+          <div class="detail-box">
+            <div class="section-title">Vias</div>
+            ${wazeAlerts.length ? wazeAlerts.slice(0, 5).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
+          </div>
+          <div class="detail-box">
+            <div class="section-title">Sensores e rede</div>
+            ${rainStations.slice(0, 4).map((station) => detailLine(station.name || 'Pluviometro', `${num(station.h01)} mm em 1h | ${num(station.h24)} mm em 24h`, station.h01 >= 10 || station.h24 >= 50 ? 2 : 0)).join('')}
+            ${offlineSirens.slice(0, 4).map((siren) => detailLine(siren.name || 'Sirene', 'offline/desativada', 2)).join('')}
+            ${region.transformersDown > 0 ? detailLine('Transformadores', powerLine, region.transformersDown >= 3 ? 2 : 1) : ''}
+            ${(!rainStations.length && !offlineSirens.length && region.transformersDown <= 0) ? '<div class="detail-empty">Sem sensor/rede em alerta nessa regiao.</div>' : ''}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function regionDetailHtml(region, vm) {
+  if (!region) return '';
+  const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
+  const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const rainStations = (vm.corData.rainStations || []).filter((station) => station.regionId === region.id);
+  const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
+  const statusLabel = region.colors.label === 'NORMAL' ? 'STATUS NORMAL' : `STATUS ${region.colors.label}`;
+  const powerLine = region.transformersDown > 0
+    ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
+    : 'Sem transformador fora no dado atual';
+  const trafficLine = `Transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}.`;
+  const mapUrl = osmEmbedUrl(region);
+
+  return `
+    <div class="region-modal">
+      <section class="region-detail">
+        <div class="region-detail-head">
+          <div>
+            <div class="ap">${region.ap} · ${region.name.toUpperCase()}</div>
+            <div class="region-detail-title">${region.name}</div>
+            <div class="popup-sub">${region.communities.join(' | ')}</div>
+          </div>
+          <div class="detail-status" style="color:${region.colors.text};border-color:${region.colors.border}55;background:${region.colors.bg}">${statusLabel}</div>
+          <a class="pill" href="#dashboard" data-close-region onclick="window.__jarvisCloseRegion && window.__jarvisCloseRegion()">Fechar</a>
+        </div>
+
+        <div class="region-detail-map">
+          <iframe
+            title="Mapa de ${region.name}"
+            src="${mapUrl}"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+
+        <div class="region-detail-kpis">
+          ${detailKpi('Risco', region.score)}
+          ${detailKpi('Ocorr.', occurrences.length)}
+          ${detailKpi('Waze 8+', wazeAlerts.length)}
+          ${detailKpi('Sirenes off', offlineSirens.length)}
+        </div>
+
+        <div class="region-detail-summary">${trafficLine}</div>
+
+        <div class="region-detail-grid">
+          <div class="detail-box">
+            <div class="section-title">Ocorrencias</div>
+            ${occurrences.length ? occurrences.map((occurrence) => detailLine(occurrence.title, occurrence.lines?.[0] || occurrence.source, occurrence.severity)).join('') : '<div class="detail-empty">Sem ocorrencias derivadas das fontes conectadas.</div>'}
+          </div>
+          <div class="detail-box">
+            <div class="section-title">Vias</div>
+            ${wazeAlerts.length ? wazeAlerts.slice(0, 7).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
+          </div>
+          <div class="detail-box">
+            <div class="section-title">Sensores e rede</div>
+            ${rainStations.slice(0, 5).map((station) => detailLine(station.name || 'Pluviometro', `${num(station.h01)} mm em 1h | ${num(station.h24)} mm em 24h`, station.h01 >= 10 || station.h24 >= 50 ? 2 : 0)).join('')}
+            ${offlineSirens.slice(0, 5).map((siren) => detailLine(siren.name || 'Sirene', 'offline/desativada', 2)).join('')}
+            ${region.transformersDown > 0 ? detailLine('Transformadores', powerLine, region.transformersDown >= 3 ? 2 : 1) : ''}
+            ${(!rainStations.length && !offlineSirens.length && region.transformersDown <= 0) ? '<div class="detail-empty">Sem sensor/rede em alerta nessa regiao.</div>' : ''}
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function osmEmbedUrl(region) {
+  const deltaLat = 0.035;
+  const deltaLng = 0.055;
+  const left = (region.lng - deltaLng).toFixed(6);
+  const right = (region.lng + deltaLng).toFixed(6);
+  const bottom = (region.lat - deltaLat).toFixed(6);
+  const top = (region.lat + deltaLat).toFixed(6);
+  const marker = `${region.lat.toFixed(6)},${region.lng.toFixed(6)}`;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${marker}`;
+}
+
+function detailKpi(label, value) {
+  return `<div class="detail-kpi"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function detailLine(title, text, severity = 0) {
+  const color = severity === 2 ? '#ff9591' : severity === 1 ? '#f0c069' : '#9fb0c7';
+  return `<div class="detail-line"><span style="background:${color}"></span><div><strong>${title}</strong><small>${text}</small></div></div>`;
+}
+
+function miniRegionMap(region, vm) {
+  const tiles = miniMapTiles(region.lat, region.lng, 13);
+  const points = operationalMapPoints(region, vm, 13);
+  const totalPoints = points.length;
+  const wazeCount = points.filter((point) => point.kind === 'waze').length;
+  const rainCount = points.filter((point) => point.kind === 'rain').length;
+  const sirenCount = points.filter((point) => point.kind === 'siren').length;
+  const powerCount = points.filter((point) => point.kind === 'power').length;
+  return `
+    <div class="card-map real-map">
+      <div class="card-map-tiles" aria-label="Mapa real de ${region.name}">
+        ${tiles.map((tile) => `
+          <img
+            src="https://tile.openstreetmap.org/${tile.z}/${tile.x}/${tile.y}.png"
+            alt=""
+            loading="lazy"
+            style="left:${tile.left}px;top:${tile.top}px"
+          />
+        `).join('')}
+        ${points.map((point) => `
+          <span
+            class="card-op-point ${point.kind} ${point.level}"
+            title="${point.label}"
+            style="left:${point.left}px;top:${point.top}px"
+          ></span>
+        `).join('')}
+        ${totalPoints ? '' : '<div class="card-map-empty">sem ponto ativo</div>'}
+        <div class="card-map-attribution">OSM</div>
+      </div>
+      <div class="card-map-info">
+        <span class="ap">PONTOS REAIS</span>
+        <strong>${totalPoints || 'Sem ativos'}</strong>
+        <small>W:${wazeCount} P:${rainCount} S:${sirenCount} T:${powerCount}</small>
+      </div>
+    </div>
+  `;
+}
+
+function operationalMapPoints(region, vm, zoom, containerW = 190, containerH = 116, tileSize = 128, project = true) {
+  const items = [];
+  const rainStations = (vm.corData.rainStations || []).filter((station) => station.regionId === region.id);
+  const sirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id);
+  const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const transformersDown = region.transformersDown || 0;
+
+  rainStations.forEach((station) => {
+    const h01 = Number.isFinite(station.h01) ? station.h01 : 0;
+    const h24 = Number.isFinite(station.h24) ? station.h24 : 0;
+    items.push({
+      lat: station.lat,
+      lng: station.lng,
+      kind: 'rain',
+      level: h01 >= 10 || h24 >= 50 ? 'critical' : h01 >= 3 || h24 >= 20 ? 'attention' : 'normal',
+      label: `${station.name || 'Pluviometro'} - ${h01.toFixed(1)} mm/h`,
+    });
+  });
+
+  sirens.filter((siren) => !siren.online).forEach((siren) => {
+    items.push({
+      lat: siren.lat,
+      lng: siren.lng,
+      kind: 'siren',
+      level: 'critical',
+      label: `${siren.name || 'Sirene'} - offline`,
+    });
+  });
+
+  if (transformersDown > 0) {
+    items.push({
+      lat: region.lat,
+      lng: region.lng,
+      kind: 'power',
+      level: transformersDown >= 3 ? 'critical' : 'attention',
+      label: `${transformersDown} transformador(es) fora`,
+    });
+  }
+
+  wazeAlerts.forEach((alert) => {
+    items.push({
+      lat: alert.lat,
+      lng: alert.lng,
+      kind: 'waze',
+      level: alert.type === 'ACCIDENT' ? 'critical' : 'attention',
+      label: `${alert.type} - ${alert.street || 'via sem nome'} - ${alert.trust} votos`,
+    });
+  });
+
+  if (!project) return items.slice(0, 80);
+  return items
+    .map((point) => ({ ...point, ...projectPoint(region, point.lat, point.lng, zoom, containerW, containerH, tileSize) }))
+    .filter((point) => point.left >= -8 && point.left <= containerW + 8 && point.top >= -8 && point.top <= containerH + 8)
+    .slice(0, 28);
+}
+
+function projectPoint(region, lat, lng, zoom, containerW = 190, containerH = 116, tileSize = 128) {
+  const center = latLngToTile(region.lat, region.lng, zoom);
+  const point = latLngToTile(lat, lng, zoom);
+  return {
+    left: Math.round((point.x - center.x) * tileSize + containerW / 2),
+    top: Math.round((point.y - center.y) * tileSize + containerH / 2),
+  };
+}
+
+function miniMapTiles(lat, lng, zoom) {
+  return mapTiles(lat, lng, zoom, 190, 116, 128);
+}
+
+function mapTiles(lat, lng, zoom, containerW, containerH, tileSize) {
+  const projected = latLngToTile(lat, lng, zoom);
+  const centerX = Math.floor(projected.x);
+  const centerY = Math.floor(projected.y);
+  const tiles = [];
+
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      tiles.push({
+        z: zoom,
+        x: centerX + dx,
+        y: centerY + dy,
+        left: Math.round((centerX + dx - projected.x) * tileSize + containerW / 2),
+        top: Math.round((centerY + dy - projected.y) * tileSize + containerH / 2),
+      });
+    }
+  }
+
+  return tiles;
+}
+
+function latLngToTile(lat, lng, zoom) {
+  const latRad = lat * Math.PI / 180;
+  const scale = 2 ** zoom;
+  return {
+    x: (lng + 180) / 360 * scale,
+    y: (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * scale,
+  };
+}
+
+function stat(label, value) {
+  return `<div><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+}
+
+function feedStrip(vm) {
+  return `
+    <div class="status-strip">
+      <div class="feed-chip" style="color:#4a5a70;font-weight:800">FONTES DE DADOS</div>
+      ${vm.feeds.map((feed) => `
+        <div class="feed-chip">
+          <span class="dot" style="color:${feed.ok ? '#4fe8d3' : '#ff6b6b'}"></span>
+          <span>${feed.name}</span>
+          <span class="mono" style="color:#4a5a70">${feed.latency}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
