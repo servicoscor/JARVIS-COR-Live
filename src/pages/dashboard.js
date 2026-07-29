@@ -165,7 +165,7 @@ function summaryRow(label, value) {
 function regionGrid(vm) {
   return vm.regions.map((region) => `
     ${regionCard(region, vm)}
-    ${vm.openRegionId === region.id ? regionInlineDetailHtml(region, vm) : ''}
+    ${regionInlineDetailHtml(region, vm)}
   `).join('');
 }
 
@@ -206,7 +206,7 @@ function regionCard(region, vm) {
         ${stat('ACID.', region.wazeAccidents || '-')}
         ${stat('JAM', region.wazeMaxJamLevel || '-')}
       </div>
-      <button class="region-open-btn${vm.openRegionId === region.id ? ' is-active' : ''}" data-open-region="${region.id}" type="button">${vm.openRegionId === region.id ? 'FECHAR' : 'ABRIR'}</button>
+      <a class="region-open-btn" href="#${regionPanelId(region)}">ABRIR</a>
     </article>
   `;
 }
@@ -220,14 +220,14 @@ function regionInlineDetailHtml(region, vm) {
     ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
     : 'Sem transformador fora no dado atual';
   return `
-    <section class="region-inline-detail" style="--accent:${region.colors.border}">
+    <section class="region-inline-detail" id="${regionPanelId(region)}" style="--accent:${region.colors.border}">
       <div class="region-inline-head">
         <div>
           <div class="ap">${region.ap} · ${region.colors.label}</div>
           <div class="region-inline-title">${region.name}</div>
           <div class="communities">${region.communities.join(' | ')}</div>
         </div>
-        <button class="pill region-inline-close" data-close-region type="button">FECHAR</button>
+        <a class="pill region-inline-close" href="#dashboard">FECHAR</a>
       </div>
       <div class="region-inline-map">
         <iframe
@@ -265,6 +265,10 @@ function regionInlineDetailHtml(region, vm) {
       </div>
     </section>
   `;
+}
+
+function regionPanelId(region) {
+  return `painel-${region.id}`;
 }
 
 function regionDetailHtml(region, vm) {
