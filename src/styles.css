@@ -78,15 +78,11 @@ a { color: inherit; text-decoration: none; }
 }
 
 .logo {
-  width: 40px;
-  height: 44px;
-  clip-path: polygon(50% 0%, 100% 18%, 100% 78%, 50% 100%, 0% 78%, 0% 18%);
-  background: linear-gradient(155deg, #1c3050, #101c30);
-  border: 1px solid #2a3d57;
-  display: grid;
-  place-items: center;
-  color: #4fe8d3;
-  font: 700 10px "IBM Plex Mono", monospace;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+  flex: 0 0 auto;
 }
 
 .title { font-size: 16px; font-weight: 800; letter-spacing: 0.2px; }

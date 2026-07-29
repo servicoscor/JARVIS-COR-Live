@@ -138,7 +138,7 @@ function topbar(vm) {
   return `
     <header class="topbar">
       <div class="brand">
-        <div class="logo">RIO</div>
+        <img class="logo" src="/imagem/logo_prefeitura_rio_cor_transparente.png" alt="Prefeitura do Rio - COR" />
         <div>
           <div class="title">JARVIS COR</div>
           <div class="subtitle">Centro de Operacoes e Resiliencia</div>

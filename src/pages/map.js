@@ -21,7 +21,7 @@ export function renderMapPage(root, vm, navigate) {
     <div class="shell">
       <header class="topbar">
         <div class="brand">
-          <div class="logo">RIO</div>
+          <img class="logo" src="/imagem/logo_prefeitura_rio_cor_transparente.png" alt="Prefeitura do Rio - COR" />
           <div>
             <div class="title">JARVIS COR</div>
             <div class="subtitle">Mapa Operacional - Regioes do Rio de Janeiro</div>

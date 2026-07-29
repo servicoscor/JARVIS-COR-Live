@@ -7,6 +7,7 @@ import https from 'node:https';
 const host = process.env.HOST || '0.0.0.0';
 const port = Number(process.env.PORT || 4173);
 const distDir = resolve('dist');
+const imageDir = resolve('imagem');
 
 const apiRoutes = new Map([
   ['/api/sirenes', 'http://websirene.rio.rj.gov.br/xml/sirenes.xml'],
@@ -79,10 +80,12 @@ function proxyRequest(req, res, target) {
 
 function serveStatic(pathname, res) {
   const requestedPath = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
+  const assetPath = staticImagePath(requestedPath);
   const filePath = normalize(join(distDir, requestedPath));
-  const safePath = filePath.startsWith(distDir) && existsSync(filePath) && statSync(filePath).isFile()
+  const distPath = filePath.startsWith(distDir) && existsSync(filePath) && statSync(filePath).isFile()
     ? filePath
-    : join(distDir, 'index.html');
+    : null;
+  const safePath = assetPath || distPath || join(distDir, 'index.html');
 
   if (!existsSync(safePath)) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -95,4 +98,14 @@ function serveStatic(pathname, res) {
     'Cache-Control': safePath.endsWith('index.html') ? 'no-cache' : 'public, max-age=31536000, immutable',
   });
   createReadStream(safePath).pipe(res);
+}
+
+function staticImagePath(requestedPath) {
+  if (!requestedPath.startsWith('/imagem/')) return null;
+
+  const relativePath = requestedPath.slice('/imagem/'.length);
+  const filePath = normalize(join(imageDir, relativePath));
+  return filePath.startsWith(imageDir) && existsSync(filePath) && statSync(filePath).isFile()
+    ? filePath
+    : null;
 }
