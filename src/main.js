@@ -128,6 +128,11 @@ function renderIfDashboardIdle() {
   if (state.route === 'dashboard' && !state.openRegionId) render();
 }
 
+function renderUnlessRegionPanelOpen() {
+  if (state.route === 'dashboard' && state.openRegionId) return;
+  render();
+}
+
 function updateClock() {
   state.now = new Date();
   const clock = document.querySelector('[data-local-clock]');
@@ -194,7 +199,7 @@ async function refreshWeather() {
     state.liveWeather = false;
     updateFeed('openMeteo', false, 'erro');
   }
-  render();
+  renderUnlessRegionPanelOpen();
 }
 
 async function refreshCorApis() {
@@ -216,7 +221,7 @@ async function refreshCorApis() {
     state.corLive = false;
     ['estagio', 'calor', 'pluviometricos', 'sirenes', 'previsaoAgora', 'previsaoEstendida'].forEach((key) => updateFeed(key, false, 'erro'));
   }
-  render();
+  renderUnlessRegionPanelOpen();
 }
 
 function recomputeOperationalState() {
@@ -236,7 +241,7 @@ async function refreshWazeTraffic() {
     state.wazeLive = false;
     updateFeed('traffic', false, 'erro');
   }
-  render();
+  renderUnlessRegionPanelOpen();
 }
 
 function updateFeed(key, ok, latency) {
