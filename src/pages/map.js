@@ -9,8 +9,10 @@ let sirenLayer;
 let wazeLayer;
 let transformerLayer;
 let occurrenceLayer;
+let currentVm;
 
 export function renderMapPage(root, vm, navigate) {
+  currentVm = vm;
   if (map && document.querySelector('#map')) {
     const ticker = document.querySelector('.ticker');
     if (ticker) ticker.textContent = vm.ticker;
@@ -45,6 +47,11 @@ export function renderMapPage(root, vm, navigate) {
       </header>
       <main class="map-page">
         <div id="map"></div>
+        <div class="map-area-legend">
+          <span><i class="critical"></i>Area critica</span>
+          <span><i class="attention"></i>Area em atencao</span>
+          <span><i class="normal"></i>Bairros monitorados</span>
+        </div>
       </main>
       <div class="ticker">${vm.ticker}</div>
     </div>
@@ -69,6 +76,7 @@ export function destroyMapPage() {
 }
 
 function initMap(vm) {
+  currentVm = vm;
   destroyMapPage();
   map = L.map('map', { zoomControl: true, attributionControl: true }).setView([-22.925, -43.32], 11);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -103,10 +111,12 @@ function bindLayerToggle(id, layer, hasData) {
   toggle.addEventListener('change', () => {
     if (toggle.checked) layer.addTo(map);
     else map.removeLayer(layer);
+    updateBairroAreas(currentVm);
   });
 }
 
 function updateOperationalLayers(vm) {
+  currentVm = vm;
   if (!map || !rainStationLayer || !sirenLayer || !wazeLayer || !transformerLayer || !occurrenceLayer) return;
 
   const rainToggle = document.querySelector('#rainStationsToggle');
@@ -129,7 +139,8 @@ function updateOperationalLayers(vm) {
   offlineSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
   (vm.wazeData.trustedAlerts || []).forEach((alert) => wazeLayer.addLayer(wazeMarker(alert)));
   downTransformers(vm).forEach((region) => transformerLayer.addLayer(transformerMarker(region)));
-  operationalOccurrences(vm).forEach((occurrence) => occurrenceLayer.addLayer(occurrenceMarker(occurrence)));
+  operationalOccurrences(vm).filter((occurrence) => occurrence.wazeAlert).forEach((occurrence) => occurrenceLayer.addLayer(occurrenceMarker(occurrence)));
+  updateBairroAreas(vm);
 }
 
 function offlineSirens(vm) {
@@ -184,25 +195,59 @@ function occurrenceOffset(index) {
 async function loadBairros(vm) {
   const res = await fetch('https://gist.githubusercontent.com/esperanc/db213370dd176f8524ae6ba32433f90a/raw/6dff5654e9ff6395f09f18ea2692f40ed2060cb9/Limite_Bairro.geojson');
   const geo = await res.json();
-  const byId = Object.fromEntries(vm.regions.map((region) => [region.id, region]));
   const excluded = new Set(['PAQUETA'].map(normalizeKey));
 
   bairroLayer = L.geoJSON(geo, {
-    style: (feature) => {
-      const region = byId[regionIdForFeature(feature.properties)];
-      const color = region?.colors.border || '#3a4a5f';
-      return { color, weight: 1, fillColor: color, fillOpacity: region ? 0.28 : 0.05, opacity: 0.65 };
-    },
+    style: (feature) => bairroAreaStyle(feature, vm),
     onEachFeature: (feature, layer) => {
-      const region = byId[regionIdForFeature(feature.properties)];
       const name = bairroName(feature.properties);
       if (excluded.has(normalizeKey(name))) return;
+      const region = regionForFeature(feature, vm);
       layer.bindTooltip(region ? `${name} - ${region.name}` : name, { sticky: true });
+      layer.on('mouseover', () => layer.setStyle({ weight: 2.4, fillOpacity: Math.max((bairroAreaStyle(feature, currentVm).fillOpacity || 0) + 0.12, 0.22), opacity: 0.95 }));
+      layer.on('mouseout', () => layer.setStyle(bairroAreaStyle(feature, currentVm)));
       layer.on('click', () => {
-        if (region) layer.bindPopup(popupHtml(region, name, vm.activeEvent)).openPopup();
+        const liveRegion = regionForFeature(feature, currentVm);
+        if (liveRegion) layer.bindPopup(popupHtml(liveRegion, name, currentVm.activeEvent, currentVm)).openPopup();
       });
     },
   }).addTo(map);
+}
+
+function updateBairroAreas(vm) {
+  if (!bairroLayer) return;
+  bairroLayer.eachLayer((layer) => {
+    if (layer.feature) layer.setStyle(bairroAreaStyle(layer.feature, vm));
+  });
+}
+
+function regionForFeature(feature, vm) {
+  const id = regionIdForFeature(feature.properties);
+  return (vm?.regions || []).find((region) => region.id === id) || null;
+}
+
+function bairroAreaStyle(feature, vm) {
+  const region = regionForFeature(feature, vm);
+  if (!region) return { color: '#3a4a5f', weight: 0.7, fillColor: '#3a4a5f', fillOpacity: 0.04, opacity: 0.28 };
+
+  const occurrences = occurrenceAreasVisible()
+    ? (vm?.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id)
+    : [];
+  const critical = occurrences.some((occurrence) => occurrence.severity === 2);
+  const active = occurrences.length > 0;
+  const color = critical ? '#e6534f' : active ? '#dda23c' : region.colors.border;
+  return {
+    color,
+    weight: active ? 1.8 : 0.9,
+    fillColor: color,
+    fillOpacity: critical ? 0.46 : active ? 0.34 : 0.12,
+    opacity: active ? 0.88 : 0.42,
+  };
+}
+
+function occurrenceAreasVisible() {
+  const toggle = document.querySelector('#occurrencesToggle');
+  return !toggle || toggle.checked;
 }
 
 function rainStationMarker(station) {
@@ -381,14 +426,15 @@ async function initRainRadar() {
   }
 }
 
-function popupHtml(region, bairro, activeEvent) {
+function popupHtml(region, bairro, activeEvent, vm = currentVm) {
   const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
   const event = activeEvent?.regionId === region.id ? activeEvent : null;
+  const occurrences = (vm?.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
   return `
-    <div style="min-width:230px">
-      <div class="ap">${region.ap} - ${region.name}</div>
+    <div style="min-width:250px">
+      <div class="ap">AREA OPERACIONAL - ${region.ap}</div>
       <div class="popup-title">${bairro || region.name}</div>
-      <div class="popup-sub">${region.communities.slice(0, 2).join(' | ')}</div>
+      <div class="popup-sub">${region.name} - ${region.communities.slice(0, 2).join(' | ')}</div>
       <div class="stats">
         <div><div class="stat-label">TEMP</div><div class="stat-value">${region.temp.toFixed(1)}C</div></div>
         <div><div class="stat-label">CHUVA</div><div class="stat-value">${pct(region.rain)}</div></div>
@@ -405,6 +451,12 @@ function popupHtml(region, bairro, activeEvent) {
         <div><div class="stat-label">SIRENES</div><div class="stat-value">${region.sirensTotal ? `${region.sirensOnline}/${region.sirensTotal}` : '-'}</div></div>
       </div>
       <div class="pill" style="margin-top:10px;background:${region.colors.bg};border-color:${region.colors.border}55;color:${region.colors.text}">${region.colors.label}</div>
+      ${occurrences.length ? `
+        <div class="popup-event">
+          <div style="font-weight:800;color:${region.colors.text}">Ocorrencias na area</div>
+          ${occurrences.slice(0, 4).map((occurrence, index) => `<div class="popup-line"><span>${String(index + 1).padStart(2, '0')}</span><strong>${occurrence.source}</strong> ${occurrence.title}</div>`).join('')}
+        </div>
+      ` : ''}
       ${event ? `
         <div class="popup-event">
           <div style="font-weight:800;color:${region.colors.text}">${event.title}</div>

@@ -930,6 +930,41 @@ a { color: inherit; text-decoration: none; }
   inset: 0;
 }
 
+.map-area-legend {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 500;
+  display: grid;
+  gap: 7px;
+  padding: 10px 12px;
+  color: #dbe3ee;
+  background: rgba(7,15,26,.84);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 8px;
+  box-shadow: 0 16px 36px rgba(0,0,0,.36);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.map-area-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.map-area-legend i {
+  width: 14px;
+  height: 10px;
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,.5);
+}
+
+.map-area-legend i.critical { background: rgba(230,83,79,.72); }
+.map-area-legend i.attention { background: rgba(221,162,60,.7); }
+.map-area-legend i.normal { background: rgba(23,201,181,.28); }
+
 .leaflet-tile {
   filter: brightness(0.62) invert(1) contrast(0.9) hue-rotate(180deg) saturate(0.6);
 }
