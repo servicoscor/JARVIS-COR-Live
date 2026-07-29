@@ -138,7 +138,10 @@ function topbar(vm) {
   return `
     <header class="topbar">
       <div class="brand">
-        <img class="logo" src="/imagem/logo_prefeitura_rio_cor_transparente.png" alt="Prefeitura do Rio - COR" />
+        <div class="logo">
+          <img class="logo-image" src="/imagem/logo_prefeitura_rio_cor_transparente.png" alt="" onerror="this.parentElement.classList.add('logo-missing')" />
+          <span class="logo-fallback">Prefeitura<br>do Rio</span>
+        </div>
         <div>
           <div class="title">JARVIS COR</div>
           <div class="subtitle">Centro de Operacoes e Resiliencia</div>
