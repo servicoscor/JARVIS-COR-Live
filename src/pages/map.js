@@ -139,7 +139,10 @@ function updateOperationalLayers(vm) {
   offlineSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
   (vm.wazeData.trustedAlerts || []).forEach((alert) => wazeLayer.addLayer(wazeMarker(alert)));
   downTransformers(vm).forEach((region) => transformerLayer.addLayer(transformerMarker(region)));
-  operationalOccurrences(vm).filter((occurrence) => occurrence.wazeAlert).forEach((occurrence) => occurrenceLayer.addLayer(occurrenceMarker(occurrence)));
+  operationalOccurrences(vm).forEach((occurrence) => {
+    occurrenceLayer.addLayer(occurrenceArea(occurrence));
+    if (occurrence.wazeAlert) occurrenceLayer.addLayer(occurrenceMarker(occurrence));
+  });
   updateBairroAreas(vm);
 }
 
@@ -349,7 +352,33 @@ function occurrenceMarker(occurrence) {
     icon: divIcon(`occurrence ${occurrenceKind(occurrence.type)}`, level, occurrenceLabel(occurrence.type)),
     zIndexOffset: 1040 + occurrence.severity,
   });
-  marker.bindPopup(`
+  marker.bindPopup(occurrencePopupHtml(occurrence, 'Ponto real Waze'));
+  return marker;
+}
+
+function occurrenceArea(occurrence) {
+  const critical = occurrence.severity === 2;
+  const color = critical ? '#e6534f' : '#dda23c';
+  const radius = occurrence.wazeAlert ? 900 : critical ? 3400 : 2400;
+  const area = L.circle([occurrence.lat, occurrence.lng], {
+    radius,
+    color,
+    weight: critical ? 3 : 2,
+    opacity: critical ? 0.92 : 0.78,
+    fillColor: color,
+    fillOpacity: critical ? 0.26 : 0.18,
+    interactive: true,
+  });
+  area.bindTooltip(`${occurrence.regionName}: ${occurrence.title}`, { sticky: true });
+  area.bindPopup(occurrencePopupHtml(
+    occurrence,
+    occurrence.wazeAlert ? 'Area calculada ao redor do ponto real Waze' : 'Area operacional estimada pela regiao',
+  ));
+  return area;
+}
+
+function occurrencePopupHtml(occurrence, locationLine) {
+  return `
     <div style="min-width:250px">
       <div class="ap">OCORRENCIA OPERACIONAL</div>
       <div class="popup-title">${occurrence.title}</div>
@@ -362,10 +391,9 @@ function occurrenceMarker(occurrence) {
       <div class="popup-event">
         ${(occurrence.lines || []).map((line, index) => `<div class="popup-line"><span>${String(index + 1).padStart(2, '0')}</span>${line}</div>`).join('')}
       </div>
-      ${occurrence.wazeAlert ? `<div class="popup-sub" style="margin-top:10px">Ponto real Waze: ${occurrence.wazeAlert.street || 'via sem nome'} (${occurrence.wazeAlert.trust} votos)</div>` : '<div class="popup-sub" style="margin-top:10px">Ponto posicionado no centro operacional da regiao.</div>'}
+      <div class="popup-sub" style="margin-top:10px">${locationLine}${occurrence.wazeAlert ? `: ${occurrence.wazeAlert.street || 'via sem nome'} (${occurrence.wazeAlert.trust} votos)` : ''}</div>
     </div>
-  `);
-  return marker;
+  `;
 }
 
 function occurrenceKind(type) {
