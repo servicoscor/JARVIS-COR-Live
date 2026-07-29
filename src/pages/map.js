@@ -8,6 +8,7 @@ let rainStationLayer;
 let sirenLayer;
 let wazeLayer;
 let transformerLayer;
+let occurrenceLayer;
 
 export function renderMapPage(root, vm, navigate) {
   if (map && document.querySelector('#map')) {
@@ -38,6 +39,7 @@ export function renderMapPage(root, vm, navigate) {
         <label class="pill"><input id="sirensToggle" type="checkbox" checked disabled /> Sirenes offline</label>
         <label class="pill"><input id="transformersToggle" type="checkbox" checked disabled /> Transformadores</label>
         <label class="pill"><input id="wazeToggle" type="checkbox" checked disabled /> Waze 8+</label>
+        <label class="pill"><input id="occurrencesToggle" type="checkbox" checked disabled /> Ocorrencias</label>
         <div class="spacer"></div>
         <button class="pill" data-route="dashboard" type="button">Voltar ao painel</button>
       </header>
@@ -62,6 +64,7 @@ export function destroyMapPage() {
     sirenLayer = null;
     wazeLayer = null;
     transformerLayer = null;
+    occurrenceLayer = null;
   }
 }
 
@@ -83,11 +86,13 @@ function initOperationalLayers(vm) {
   sirenLayer = L.layerGroup().addTo(map);
   wazeLayer = L.layerGroup().addTo(map);
   transformerLayer = L.layerGroup().addTo(map);
+  occurrenceLayer = L.layerGroup().addTo(map);
 
   bindLayerToggle('rainStationsToggle', rainStationLayer, () => (vm.corData.rainStations || []).length > 0);
   bindLayerToggle('sirensToggle', sirenLayer, () => offlineSirens(vm).length > 0);
   bindLayerToggle('transformersToggle', transformerLayer, () => downTransformers(vm).length > 0);
   bindLayerToggle('wazeToggle', wazeLayer, () => (vm.wazeData.trustedAlerts || []).length > 0);
+  bindLayerToggle('occurrencesToggle', occurrenceLayer, () => operationalOccurrences(vm).length > 0);
   updateOperationalLayers(vm);
 }
 
@@ -102,25 +107,29 @@ function bindLayerToggle(id, layer, hasData) {
 }
 
 function updateOperationalLayers(vm) {
-  if (!map || !rainStationLayer || !sirenLayer || !wazeLayer || !transformerLayer) return;
+  if (!map || !rainStationLayer || !sirenLayer || !wazeLayer || !transformerLayer || !occurrenceLayer) return;
 
   const rainToggle = document.querySelector('#rainStationsToggle');
   const sirenToggle = document.querySelector('#sirensToggle');
   const wazeToggle = document.querySelector('#wazeToggle');
   const transformerToggle = document.querySelector('#transformersToggle');
+  const occurrenceToggle = document.querySelector('#occurrencesToggle');
   if (rainToggle) rainToggle.disabled = !(vm.corData.rainStations || []).length;
   if (sirenToggle) sirenToggle.disabled = !offlineSirens(vm).length;
   if (wazeToggle) wazeToggle.disabled = !(vm.wazeData.trustedAlerts || []).length;
   if (transformerToggle) transformerToggle.disabled = !downTransformers(vm).length;
+  if (occurrenceToggle) occurrenceToggle.disabled = !operationalOccurrences(vm).length;
 
   rainStationLayer.clearLayers();
   sirenLayer.clearLayers();
   wazeLayer.clearLayers();
   transformerLayer.clearLayers();
+  occurrenceLayer.clearLayers();
   (vm.corData.rainStations || []).forEach((station) => rainStationLayer.addLayer(rainStationMarker(station)));
   offlineSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
   (vm.wazeData.trustedAlerts || []).forEach((alert) => wazeLayer.addLayer(wazeMarker(alert)));
   downTransformers(vm).forEach((region) => transformerLayer.addLayer(transformerMarker(region)));
+  operationalOccurrences(vm).forEach((occurrence) => occurrenceLayer.addLayer(occurrenceMarker(occurrence)));
 }
 
 function offlineSirens(vm) {
@@ -129,6 +138,47 @@ function offlineSirens(vm) {
 
 function downTransformers(vm) {
   return (vm.regions || []).filter((region) => region.transformersDown > 0);
+}
+
+function operationalOccurrences(vm) {
+  const regionsById = new Map((vm.regions || []).map((region) => [region.id, region]));
+  const wazeByRegion = new Map();
+  (vm.wazeData.trustedAlerts || []).forEach((alert) => {
+    if (!wazeByRegion.has(alert.regionId)) wazeByRegion.set(alert.regionId, []);
+    wazeByRegion.get(alert.regionId).push(alert);
+  });
+
+  const countByRegion = new Map();
+  return (vm.activeOccurrences || []).map((occurrence) => {
+    const region = regionsById.get(occurrence.regionId);
+    if (!region) return null;
+
+    const wazeMatch = wazeByRegion.get(occurrence.regionId)?.find((alert) => (
+      occurrence.type === 'WAZ-ACC' ? alert.type === 'ACCIDENT' : alert.type !== 'ACCIDENT'
+    ));
+    const index = countByRegion.get(occurrence.regionId) || 0;
+    countByRegion.set(occurrence.regionId, index + 1);
+
+    const offset = occurrenceOffset(index);
+    return {
+      ...occurrence,
+      lat: wazeMatch?.lat ?? region.lat + offset.lat,
+      lng: wazeMatch?.lng ?? region.lng + offset.lng,
+      region,
+      wazeAlert: wazeMatch,
+    };
+  }).filter(Boolean);
+}
+
+function occurrenceOffset(index) {
+  const offsets = [
+    { lat: 0.000, lng: 0.000 },
+    { lat: 0.012, lng: 0.010 },
+    { lat: -0.012, lng: 0.012 },
+    { lat: 0.010, lng: -0.014 },
+    { lat: -0.010, lng: -0.012 },
+  ];
+  return offsets[index % offsets.length];
 }
 
 async function loadBairros(vm) {
@@ -229,7 +279,7 @@ function transformerMarker(region) {
 function wazeMarker(alert) {
   const isAccident = alert.type === 'ACCIDENT';
   const marker = L.marker([alert.lat, alert.lng], {
-    icon: divIcon('waze', isAccident ? 'critical' : 'attention', isAccident ? 'ACC' : 'TRF'),
+    icon: divIcon(isAccident ? 'accident' : 'waze', isAccident ? 'critical' : 'attention', isAccident ? 'ACC' : 'TRF'),
     zIndexOffset: 980,
   });
   marker.bindPopup(`
@@ -246,6 +296,51 @@ function wazeMarker(alert) {
     </div>
   `);
   return marker;
+}
+
+function occurrenceMarker(occurrence) {
+  const level = occurrence.severity === 2 ? 'critical' : 'attention';
+  const marker = L.marker([occurrence.lat, occurrence.lng], {
+    icon: divIcon(`occurrence ${occurrenceKind(occurrence.type)}`, level, occurrenceLabel(occurrence.type)),
+    zIndexOffset: 1040 + occurrence.severity,
+  });
+  marker.bindPopup(`
+    <div style="min-width:250px">
+      <div class="ap">OCORRENCIA OPERACIONAL</div>
+      <div class="popup-title">${occurrence.title}</div>
+      <div class="popup-sub">${occurrence.regionName} - ${occurrence.source}</div>
+      <div class="stats">
+        <div><div class="stat-label">RISCO</div><div class="stat-value">${occurrence.severity === 2 ? 'Critico' : 'Atencao'}</div></div>
+        <div><div class="stat-label">TIPO</div><div class="stat-value">${occurrence.type}</div></div>
+        <div><div class="stat-label">AP</div><div class="stat-value">${occurrence.ap}</div></div>
+      </div>
+      <div class="popup-event">
+        ${(occurrence.lines || []).map((line, index) => `<div class="popup-line"><span>${String(index + 1).padStart(2, '0')}</span>${line}</div>`).join('')}
+      </div>
+      ${occurrence.wazeAlert ? `<div class="popup-sub" style="margin-top:10px">Ponto real Waze: ${occurrence.wazeAlert.street || 'via sem nome'} (${occurrence.wazeAlert.trust} votos)</div>` : '<div class="popup-sub" style="margin-top:10px">Ponto posicionado no centro operacional da regiao.</div>'}
+    </div>
+  `);
+  return marker;
+}
+
+function occurrenceKind(type) {
+  if (type === 'WAZ-ACC') return 'accident';
+  if (type.startsWith('WAZ')) return 'traffic';
+  if (type.startsWith('PLU')) return 'rain';
+  if (type.startsWith('SIR')) return 'siren';
+  if (type.startsWith('ENE')) return 'power';
+  if (type.startsWith('CAL')) return 'heat';
+  return 'general';
+}
+
+function occurrenceLabel(type) {
+  if (type === 'WAZ-ACC') return 'ACC';
+  if (type.startsWith('WAZ')) return 'TRF';
+  if (type.startsWith('PLU')) return 'PLU';
+  if (type.startsWith('SIR')) return 'SIR';
+  if (type.startsWith('ENE')) return 'ENE';
+  if (type.startsWith('CAL')) return 'CAL';
+  return 'OCR';
 }
 
 function divIcon(kind, level, label) {
