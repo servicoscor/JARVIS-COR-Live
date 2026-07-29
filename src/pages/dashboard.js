@@ -168,7 +168,7 @@ function summaryRow(label, value) {
 function regionGrid(vm) {
   return vm.regions.map((region) => `
     ${regionCard(region, vm)}
-    ${regionInlineDetailHtml(region, vm)}
+    ${vm.openRegionId === region.id ? regionInlineDetailHtml(region, vm) : ''}
   `).join('');
 }
 
@@ -209,7 +209,7 @@ function regionCard(region, vm) {
         ${stat('ACID.', region.wazeAccidents || '-')}
         ${stat('JAM', region.wazeMaxJamLevel || '-')}
       </div>
-      <a class="region-open-btn" href="#${regionPanelId(region)}">ABRIR</a>
+      <button class="region-open-btn" type="button" data-open-region="${region.id}">ABRIR</button>
     </article>
   `;
 }
@@ -237,7 +237,7 @@ function regionInlineDetailHtml(region, vm) {
             <span><strong>Atualizado</strong>${vm.time}</span>
           </div>
         </div>
-        <a class="pill region-inline-close" href="#dashboard">FECHAR</a>
+        <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
       </div>
       <div class="region-inline-map">
         <iframe
