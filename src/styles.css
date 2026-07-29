@@ -21,6 +21,30 @@ body {
   overflow: hidden;
 }
 
+* {
+  scrollbar-color: rgba(79,232,211,.42) rgba(7,15,26,.65);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(7,15,26,.65);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(79,232,211,.32);
+  border: 2px solid rgba(7,15,26,.65);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(79,232,211,.52);
+}
+
 button, a { font: inherit; }
 a { color: inherit; text-decoration: none; }
 
@@ -164,6 +188,8 @@ a { color: inherit; text-decoration: none; }
   flex: 1;
   min-width: 0;
   overflow: auto;
+  scroll-behavior: smooth;
+  scroll-padding-bottom: 92px;
 }
 
 .kpis {
@@ -194,7 +220,7 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 18px;
-  padding: 24px 28px;
+  padding: 24px 28px 96px;
 }
 
 .card {
@@ -414,7 +440,8 @@ a { color: inherit; text-decoration: none; }
 .region-inline-detail {
   display: none;
   grid-column: 1 / -1;
-  overflow: hidden;
+  max-height: calc(100vh - 190px);
+  overflow: auto;
   border: 1px solid rgba(159,176,199,.18);
   border-top: 2px solid var(--accent);
   border-radius: 8px;
@@ -427,6 +454,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 .region-inline-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
