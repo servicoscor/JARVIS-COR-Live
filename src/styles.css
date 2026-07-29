@@ -64,7 +64,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 12px 24px;
+  padding: 7px 24px;
   background: linear-gradient(180deg, #101d30, #0c1626);
   border-bottom: 2px solid var(--teal);
   flex-shrink: 0;
@@ -78,8 +78,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .logo {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
