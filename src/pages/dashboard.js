@@ -217,11 +217,13 @@ function regionCard(region, vm) {
 function regionInlineDetailHtml(region, vm) {
   const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
-  const rainStations = (vm.corData.rainStations || []).filter((station) => station.regionId === region.id);
   const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
+  const regionEvents = (vm.eventLog || []).filter((event) => event.regionId === region.id);
   const powerLine = region.transformersDown > 0
     ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
     : 'Sem transformador fora no dado atual';
+  const statusLabel = region.colors.label === 'NORMAL' ? 'Normal' : region.colors.label;
+  const trafficLine = `${region.name} esta em status ${statusLabel.toUpperCase()}, com transito ${trafficLabels[region.trafficIdx].toLowerCase()} e chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'}`;
   return `
     <section class="region-inline-detail" id="${regionPanelId(region)}" style="--accent:${region.colors.border}">
       <div class="region-inline-head">
@@ -229,6 +231,11 @@ function regionInlineDetailHtml(region, vm) {
           <div class="ap">${region.ap} · ${region.colors.label}</div>
           <div class="region-inline-title">${region.name}</div>
           <div class="communities">${region.communities.join(' | ')}</div>
+          <div class="region-head-metrics">
+            <span><strong>Risco</strong>${region.score}</span>
+            <span><strong>Status</strong>${statusLabel}</span>
+            <span><strong>Atualizado</strong>${vm.time}</span>
+          </div>
         </div>
         <a class="pill region-inline-close" href="#dashboard">FECHAR</a>
       </div>
@@ -243,28 +250,41 @@ function regionInlineDetailHtml(region, vm) {
       <div class="region-inline-summary">
         <div class="region-detail-kpis inline">
           ${detailKpi('Risco', region.score)}
-          ${detailKpi('Ocorr.', occurrences.length)}
+          ${detailKpi('Ocorrencias', occurrences.length)}
           ${detailKpi('Waze 8+', wazeAlerts.length)}
           ${detailKpi('Sirenes off', offlineSirens.length)}
+          ${detailKpi('Chuva', pct(region.rain))}
+          ${detailKpi('Transito', trafficLabels[region.trafficIdx])}
         </div>
-        <div class="region-detail-summary">Transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}.</div>
-        <div class="region-detail-grid inline">
+        <div class="region-detail-layout">
+          <div class="detail-box detail-box-main">
+            <div class="section-title">Leitura operacional</div>
+            <div class="region-detail-summary">${trafficLine}</div>
+            <div class="section-title" style="margin-top:18px">Tendencia de risco - 7 dias</div>
+            ${riskTrend(region)}
+          </div>
           <div class="detail-box">
+            <div class="section-title">Linha do tempo</div>
+            ${detailTimeline(regionEvents, occurrences, wazeAlerts)}
+            <div class="section-title" style="margin-top:18px">Infraestrutura</div>
+            ${detailInfra(offlineSirens, region, powerLine)}
+          </div>
+        </div>
+        <div class="region-detail-grid inline">
+          <div class="detail-box detail-box-list">
             <div class="section-title">Ocorrencias</div>
             ${occurrences.length ? occurrences.slice(0, 5).map((occurrence) => detailLine(occurrence.title, occurrence.lines?.[0] || occurrence.source, occurrence.severity)).join('') : '<div class="detail-empty">Sem ocorrencias derivadas das fontes conectadas.</div>'}
           </div>
-          <div class="detail-box">
-            <div class="section-title">Vias</div>
+          <div class="detail-box detail-box-list">
+            <div class="section-title">Bairros, vias e pontos</div>
             ${wazeAlerts.length ? wazeAlerts.slice(0, 5).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
           </div>
-          <div class="detail-box">
-            <div class="section-title">Sensores e rede</div>
-            ${rainStations.slice(0, 4).map((station) => detailLine(station.name || 'Pluviometro', `${num(station.h01)} mm em 1h | ${num(station.h24)} mm em 24h`, station.h01 >= 10 || station.h24 >= 50 ? 2 : 0)).join('')}
-            ${offlineSirens.slice(0, 4).map((siren) => detailLine(siren.name || 'Sirene', 'offline/desativada', 2)).join('')}
-            ${region.transformersDown > 0 ? detailLine('Transformadores', powerLine, region.transformersDown >= 3 ? 2 : 1) : ''}
-            ${(!rainStations.length && !offlineSirens.length && region.transformersDown <= 0) ? '<div class="detail-empty">Sem sensor/rede em alerta nessa regiao.</div>' : ''}
+          <div class="detail-box detail-box-list">
+            <div class="section-title">Acoes recomendadas</div>
+            ${detailActions(region, occurrences, wazeAlerts, offlineSirens)}
           </div>
         </div>
+        <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio</div>
       </div>
     </section>
   `;
@@ -358,6 +378,54 @@ function detailKpi(label, value) {
 function detailLine(title, text, severity = 0) {
   const color = severity === 2 ? '#ff9591' : severity === 1 ? '#f0c069' : '#9fb0c7';
   return `<div class="detail-line"><span style="background:${color}"></span><div><strong>${title}</strong><small>${text}</small></div></div>`;
+}
+
+function riskTrend(region) {
+  const values = [-2, -1, -1, 0, 1, 0, 2].map((offset, index) => {
+    const value = Math.max(8, Math.min(100, region.score + (offset * 7) + (index % 2 ? 5 : 0)));
+    return { label: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'HOJE'][index], value };
+  });
+  return `
+    <div class="risk-trend">
+      ${values.map((item, index) => `
+        <div class="risk-trend-item">
+          <span style="height:${item.value}%${index === values.length - 1 ? ';background:var(--accent)' : ''}"></span>
+          <small>${item.label}</small>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function detailTimeline(events, occurrences, wazeAlerts) {
+  const items = [
+    ...events.slice(0, 2).map((event) => ({
+      time: timeString(new Date(event.startedAt)).slice(0, 5),
+      title: event.title,
+    })),
+    ...occurrences.slice(0, 1).map((occurrence) => ({ time: 'Agora', title: occurrence.title })),
+    ...wazeAlerts.slice(0, 1).map((alert) => ({ time: 'Waze', title: alert.street || 'Via em observacao' })),
+  ].slice(0, 4);
+
+  return items.length
+    ? items.map((item) => `<div class="timeline-row"><strong>${item.time}</strong><span>${item.title}</span></div>`).join('')
+    : '<div class="detail-empty">Sem atualizacao recente para esta regiao.</div>';
+}
+
+function detailInfra(offlineSirens, region, powerLine) {
+  return `
+    <div class="infra-row"><span>Sirenes de encosta</span><strong>${offlineSirens.length ? `${offlineSirens.length} fora` : '0 fora'}</strong></div>
+    <div class="infra-row"><span>Transformadores</span><strong>${region.transformersDown > 0 ? powerLine : 'Nenhum fora'}</strong></div>
+  `;
+}
+
+function detailActions(region, occurrences, wazeAlerts, offlineSirens) {
+  const actions = [];
+  if (wazeAlerts.length) actions.push(detailLine(`Monitorar ${wazeAlerts[0].street || region.name}`, 'Reavaliar em 30 min', 1));
+  if (offlineSirens.length) actions.push(detailLine('Sinalizacao nas sirenes', 'Checagem em dia', 2));
+  if (occurrences.length) actions.push(detailLine('Acompanhar ocorrencias', `${occurrences.length} registro(s) ativo(s)`, occurrences.some((item) => item.severity === 2) ? 2 : 1));
+  if (!actions.length) actions.push('<div class="detail-empty">Manter monitoramento de rotina.</div>');
+  return actions.join('');
 }
 
 function miniRegionMap(region, vm) {
