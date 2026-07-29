@@ -540,6 +540,19 @@ a { color: inherit; text-decoration: none; }
   filter: saturate(.9) contrast(1) brightness(.84);
 }
 
+.region-inline-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #101925;
+  filter: saturate(.9) contrast(1) brightness(.84);
+}
+
+.region-inline-map .leaflet-popup-content-wrapper,
+.region-inline-map .leaflet-popup-tip {
+  background: #0f1826;
+  color: #dbe3ee;
+}
+
 .region-inline-summary {
   background: #0b1421;
 }

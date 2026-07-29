@@ -9,6 +9,7 @@ import { applyRainAndSirens, fetchCorApis } from './lib/providers/corApis.js';
 import { fetchWazeTraffic } from './lib/providers/waze.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderMapPage, destroyMapPage } from './pages/map.js';
+import { destroyRegionDetailMap } from './pages/regionMap.js';
 
 const app = document.querySelector('#app');
 
@@ -117,6 +118,7 @@ function buildTicker(regions, occurrences) {
 function render() {
   const vm = viewModel();
   if (vm.route === 'map') {
+    destroyRegionDetailMap();
     renderMapPage(app, vm, navigate);
   } else {
     destroyMapPage();

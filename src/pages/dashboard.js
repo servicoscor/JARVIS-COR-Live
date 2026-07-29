@@ -1,4 +1,5 @@
 import { pct, timeString } from '../lib/format.js';
+import { destroyRegionDetailMap, regionMapContainerId, renderRegionDetailMap } from './regionMap.js';
 
 const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
 
@@ -132,6 +133,14 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
       closeRegion();
     }
   };
+
+  if (vm.openRegionId) {
+    const openRegion = vm.regions.find((region) => region.id === vm.openRegionId);
+    if (openRegion) renderRegionDetailMap(openRegion, vm);
+    else destroyRegionDetailMap();
+  } else {
+    destroyRegionDetailMap();
+  }
 }
 
 function topbar(vm) {
@@ -239,14 +248,7 @@ function regionInlineDetailHtml(region, vm) {
         </div>
         <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
       </div>
-      <div class="region-inline-map">
-        <iframe
-          title="Mapa de ${region.name}"
-          src="${osmEmbedUrl(region)}"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
-      </div>
+      <div class="region-inline-map" id="${regionMapContainerId(region)}"></div>
       <div class="region-inline-summary">
         <div class="region-detail-kpis inline">
           ${detailKpi('Risco', region.score)}
