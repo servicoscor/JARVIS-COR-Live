@@ -7,7 +7,7 @@ import https from 'node:https';
 const host = process.env.HOST || '0.0.0.0';
 const port = Number(process.env.PORT || 4173);
 const distDir = resolve('dist');
-const imageDir = resolve('imagem');
+const imageDir = resolve('imagen');
 
 const apiRoutes = new Map([
   ['/api/sirenes', 'http://websirene.rio.rj.gov.br/xml/sirenes.xml'],
@@ -101,9 +101,9 @@ function serveStatic(pathname, res) {
 }
 
 function staticImagePath(requestedPath) {
-  if (!requestedPath.startsWith('/imagem/')) return null;
+  if (!requestedPath.startsWith('/imagen/')) return null;
 
-  const relativePath = requestedPath.slice('/imagem/'.length);
+  const relativePath = requestedPath.slice('/imagen/'.length);
   const filePath = normalize(join(imageDir, relativePath));
   return filePath.startsWith(imageDir) && existsSync(filePath) && statSync(filePath).isFile()
     ? filePath

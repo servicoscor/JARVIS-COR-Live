@@ -22,7 +22,7 @@ export function renderMapPage(root, vm, navigate) {
       <header class="topbar">
         <div class="brand">
           <div class="logo">
-            <img class="logo-image" src="/imagem/logo_prefeitura_rio_cor_transparente.png" alt="" onerror="this.parentElement.classList.add('logo-missing')" />
+            <img class="logo-image" src="/imagen/logo_prefeitura_rio_cor_transparente.png" alt="" onerror="this.parentElement.classList.add('logo-missing')" />
             <span class="logo-fallback">Prefeitura<br>do Rio</span>
           </div>
           <div>
