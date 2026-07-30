@@ -1,7 +1,14 @@
+const TOUR_OVERVIEW_MS = 10000;
+const TOUR_STOP_MS = 6000;
+const TOUR_ZOOM = 15;
+const TOUR_FLY_DURATION = 1.1;
+
 let activeMap = null;
 let activeRegionId = null;
 let activeContainer = null;
 let markerLayer = null;
+let tourTimers = [];
+let tourBounds = null;
 
 export function renderRegionDetailMap(region, vm) {
   const containerId = regionMapContainerId(region);
@@ -21,12 +28,14 @@ export function renderRegionDetailMap(region, vm) {
     markerLayer = L.layerGroup().addTo(activeMap);
     activeRegionId = region.id;
     activeContainer = container;
+    activeMap.on('dragstart', clearTour);
   }
 
   drawRegionMarkers(region, vm);
 }
 
 export function destroyRegionDetailMap() {
+  clearTour();
   if (activeMap) {
     activeMap.remove();
   }
@@ -34,6 +43,7 @@ export function destroyRegionDetailMap() {
   activeRegionId = null;
   activeContainer = null;
   markerLayer = null;
+  tourBounds = null;
 }
 
 export function regionMapContainerId(region) {
@@ -42,9 +52,11 @@ export function regionMapContainerId(region) {
 
 function drawRegionMarkers(region, vm) {
   if (!activeMap || !markerLayer) return;
+  clearTour();
   markerLayer.clearLayers();
 
   const bounds = [[region.lat, region.lng]];
+  const tourStops = [];
 
   const centerMarker = L.marker([region.lat, region.lng], {
     icon: divIcon('', 'normal', region.ap),
@@ -75,6 +87,7 @@ function drawRegionMarkers(region, vm) {
     `);
     markerLayer.addLayer(marker);
     bounds.push([siren.lat, siren.lng]);
+    tourStops.push({ lat: siren.lat, lng: siren.lng, marker });
   });
 
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
@@ -94,6 +107,7 @@ function drawRegionMarkers(region, vm) {
     `);
     markerLayer.addLayer(marker);
     bounds.push([alert.lat, alert.lng]);
+    tourStops.push({ lat: alert.lat, lng: alert.lng, marker });
   });
 
   if (region.transformersDown > 0) {
@@ -117,6 +131,7 @@ function drawRegionMarkers(region, vm) {
     `);
     markerLayer.addLayer(marker);
     bounds.push([lat, lng]);
+    tourStops.push({ lat, lng, marker });
   }
 
   const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
@@ -151,13 +166,58 @@ function drawRegionMarkers(region, vm) {
     `);
     markerLayer.addLayer(circle);
     bounds.push([lat, lng]);
+    tourStops.push({ lat, lng, marker: circle });
   });
 
   if (bounds.length > 1) {
+    tourBounds = bounds;
     activeMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
   } else {
+    tourBounds = null;
     activeMap.setView([region.lat, region.lng], 12);
   }
+
+  scheduleTour(tourStops);
+}
+
+function scheduleTour(stops) {
+  clearTour();
+  if (!activeMap || !stops.length) return;
+
+  const goToStop = (index) => {
+    if (!activeMap) return;
+    const stop = stops[index];
+    activeMap.flyTo([stop.lat, stop.lng], TOUR_ZOOM, { duration: TOUR_FLY_DURATION });
+
+    tourTimers.push(window.setTimeout(() => {
+      if (activeMap) stop.marker.openPopup();
+    }, TOUR_FLY_DURATION * 1000 + 150));
+
+    tourTimers.push(window.setTimeout(() => {
+      if (!activeMap) return;
+      stop.marker.closePopup();
+      if (index + 1 < stops.length) {
+        goToStop(index + 1);
+      } else {
+        backToOverview();
+      }
+    }, TOUR_STOP_MS));
+  };
+
+  const backToOverview = () => {
+    if (!activeMap) return;
+    if (tourBounds) {
+      activeMap.flyToBounds(tourBounds, { padding: [30, 30], maxZoom: 14, duration: TOUR_FLY_DURATION });
+    }
+    tourTimers.push(window.setTimeout(() => goToStop(0), TOUR_OVERVIEW_MS));
+  };
+
+  tourTimers.push(window.setTimeout(() => goToStop(0), TOUR_OVERVIEW_MS));
+}
+
+function clearTour() {
+  tourTimers.forEach((id) => window.clearTimeout(id));
+  tourTimers = [];
 }
 
 function occurrenceOffset(index) {
