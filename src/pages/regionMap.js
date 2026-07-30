@@ -1,5 +1,6 @@
 let activeMap = null;
 let activeRegionId = null;
+let activeContainer = null;
 let markerLayer = null;
 
 export function renderRegionDetailMap(region, vm) {
@@ -7,7 +8,7 @@ export function renderRegionDetailMap(region, vm) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  if (activeMap && activeRegionId !== region.id) {
+  if (activeMap && (activeRegionId !== region.id || activeContainer !== container)) {
     destroyRegionDetailMap();
   }
 
@@ -19,6 +20,7 @@ export function renderRegionDetailMap(region, vm) {
     }).addTo(activeMap);
     markerLayer = L.layerGroup().addTo(activeMap);
     activeRegionId = region.id;
+    activeContainer = container;
   }
 
   drawRegionMarkers(region, vm);
@@ -30,6 +32,7 @@ export function destroyRegionDetailMap() {
   }
   activeMap = null;
   activeRegionId = null;
+  activeContainer = null;
   markerLayer = null;
 }
 

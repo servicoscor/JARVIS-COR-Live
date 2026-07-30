@@ -135,6 +135,10 @@ function renderIfDashboardIdle() {
 }
 
 function renderUnlessRegionPanelOpen() {
+  if (state.standalone) {
+    render();
+    return;
+  }
   if (state.route === 'dashboard' && state.openRegionId) return;
   render();
 }
