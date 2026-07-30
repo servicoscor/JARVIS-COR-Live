@@ -13,9 +13,12 @@ import { destroyRegionDetailMap } from './pages/regionMap.js';
 
 const app = document.querySelector('#app');
 
+const standalone = new URLSearchParams(location.search).get('standalone') === '1';
+
 const state = {
   route: location.hash === '#map' ? 'map' : 'dashboard',
   openRegionId: parseRegionHash(),
+  standalone,
   now: new Date(),
   regions: structuredClone(regionsSeed),
   feeds: structuredClone(feedsSeed),
@@ -70,6 +73,7 @@ function viewModel() {
   return {
     route: state.route,
     openRegionId: state.openRegionId,
+    standalone: state.standalone,
     now: state.now,
     time: timeString(state.now),
     regions,

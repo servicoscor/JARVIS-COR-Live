@@ -7,6 +7,11 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
   window.__jarvisOpenRegion = openRegion;
   window.__jarvisCloseRegion = closeRegion;
 
+  if (vm.standalone) {
+    renderStandaloneRegion(root, vm);
+    return;
+  }
+
   root.innerHTML = `
     <div class="shell">
       ${topbar(vm, navigate)}
@@ -115,11 +120,8 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
     const openButton = target.closest?.('[data-open-region]');
     if (openButton) {
       event.preventDefault();
-      if (vm.openRegionId === openButton.dataset.openRegion) {
-        closeRegion();
-      } else {
-        openRegion(openButton.dataset.openRegion);
-      }
+      const regionId = openButton.dataset.openRegion;
+      window.open(buildStandaloneRegionUrl(regionId), `jarvis_region_${regionId}`, 'noopener');
       return;
     }
 
@@ -179,6 +181,35 @@ function regionGrid(vm) {
     ${regionCard(region, vm)}
     ${vm.openRegionId === region.id ? regionInlineDetailHtml(region, vm) : ''}
   `).join('');
+}
+
+function renderStandaloneRegion(root, vm) {
+  const region = vm.regions.find((item) => item.id === vm.openRegionId);
+
+  if (!region) {
+    destroyRegionDetailMap();
+    root.innerHTML = `
+      <div class="standalone-shell">
+        <div class="standalone-empty">Regiao nao encontrada. Voce pode fechar esta aba.</div>
+      </div>
+    `;
+    return;
+  }
+
+  root.innerHTML = `<div class="standalone-shell">${regionInlineDetailHtml(region, vm)}</div>`;
+
+  root.onclick = (event) => {
+    const closeButton = event.target.closest?.('[data-close-region]');
+    if (closeButton) {
+      window.close();
+    }
+  };
+
+  renderRegionDetailMap(region, vm);
+}
+
+function buildStandaloneRegionUrl(regionId) {
+  return `${location.origin}${location.pathname}?standalone=1#region-${regionId}`;
 }
 
 function regionCard(region, vm) {
