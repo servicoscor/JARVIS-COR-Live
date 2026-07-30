@@ -235,19 +235,7 @@ function regionInlineDetailHtml(region, vm) {
   const trafficLine = `${region.name} esta em status ${statusLabel.toUpperCase()}, com transito ${trafficLabels[region.trafficIdx].toLowerCase()} e chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'}`;
   return `
     <section class="region-inline-detail" id="${regionPanelId(region)}" style="--accent:${region.colors.border}">
-      <div class="region-inline-head">
-        <div>
-          <div class="ap">${region.ap} · ${region.colors.label}</div>
-          <div class="region-inline-title">${region.name}</div>
-          <div class="communities">${region.communities.join(' | ')}</div>
-          <div class="region-head-metrics">
-            <span><strong>Risco</strong>${region.score}</span>
-            <span><strong>Status</strong>${statusLabel}</span>
-            <span><strong>Atualizado</strong>${vm.time}</span>
-          </div>
-        </div>
-        <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
-      </div>
+      <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
       <div class="region-inline-map" id="${regionMapContainerId(region)}"></div>
       <div class="region-inline-summary">
         <div class="region-detail-kpis inline">
