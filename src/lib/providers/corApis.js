@@ -1,4 +1,4 @@
-import { clamp } from '../format.js';
+import { clamp, safeNum } from '../format.js';
 
 const endpoints = {
   sirenes: '/api/sirenes',
@@ -56,7 +56,7 @@ export function applyRainAndSirens(regions, corData) {
     const maxH24 = Math.max(0, ...rainStations.map((station) => station.h24));
     const rainScore = rainStations.length
       ? clamp(Math.round(Math.max(avgH01 * 18, avgH03 * 8, maxH24 * 1.5)), 0, 100)
-      : region.rain;
+      : safeNum(region.rain, 0);
 
     return {
       ...region,
@@ -178,7 +178,8 @@ function fixAttrs(obj) {
 }
 
 function parsePtNumber(value) {
-  return Number(String(value || '0').replace(',', '.'));
+  const num = Number(String(value ?? '0').replace(',', '.'));
+  return Number.isFinite(num) ? num : 0;
 }
 
 function nearestRegionId(lat, lng, regions) {

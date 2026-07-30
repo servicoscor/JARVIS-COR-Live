@@ -1,4 +1,4 @@
-import { clamp } from './format.js';
+import { clamp, safeNum } from './format.js';
 
 export async function fetchOpenMeteo(regions) {
   const lats = regions.map((region) => region.lat).join(',');
@@ -13,8 +13,8 @@ export async function fetchOpenMeteo(regions) {
     if (!current) return region;
     return {
       ...region,
-      temp: current.temperature_2m,
-      rain: clamp(current.precipitation * 20, 0, 100),
+      temp: safeNum(current.temperature_2m, region.temp),
+      rain: clamp(safeNum(current.precipitation, 0) * 20, 0, 100),
       liveWeather: true,
     };
   });

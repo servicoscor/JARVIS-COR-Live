@@ -1,5 +1,9 @@
 export function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
+  return Math.max(min, Math.min(max, safeNum(value, min)));
+}
+
+export function safeNum(value, fallback = 0) {
+  return Number.isFinite(value) ? value : fallback;
 }
 
 export function rand(min, max) {

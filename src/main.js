@@ -1,7 +1,7 @@
 import './styles.css';
 import { regionsSeed } from './data/regions.js';
 import { dataFeeds as feedsSeed } from './data/feeds.js';
-import { clamp, pct, rand, timeString } from './lib/format.js';
+import { clamp, pct, rand, safeNum, timeString } from './lib/format.js';
 import { applyOperationalOccurrences, deriveOperationalOccurrences } from './lib/occurrences.js';
 import { computeSeverity, riskScore, severityColors } from './lib/risk.js';
 import { fetchOpenMeteo } from './lib/weather.js';
@@ -60,15 +60,14 @@ function scoreRegions() {
 
 function viewModel() {
   const regions = scoreRegions();
-  const cityRisk = Math.round(regions.reduce((sum, region) => sum + region.score, 0) / regions.length);
+  const cityRisk = safeNum(Math.round(regions.reduce((sum, region) => sum + safeNum(region.score), 0) / regions.length));
   const maxSeverity = Math.max(...regions.map((region) => region.severity));
   const totalOcc = state.activeOccurrences.length;
-  const rainAvg = regions.reduce((sum, region) => sum + region.rain, 0) / regions.length;
-  const avgTemp = regions.reduce((sum, region) => sum + region.temp, 0) / regions.length;
-  const transformersDown = regions.reduce((sum, region) => sum + region.transformersDown, 0);
+  const rainAvg = regions.reduce((sum, region) => sum + safeNum(region.rain), 0) / regions.length;
+  const avgTemp = regions.reduce((sum, region) => sum + safeNum(region.temp), 0) / regions.length;
+  const transformersDown = regions.reduce((sum, region) => sum + safeNum(region.transformersDown), 0);
   const ranked = [...regions].sort((a, b) => b.score - a.score);
-  const stage = maxSeverity === 2 ? 'Estagio 3 - Critico' : maxSeverity === 1 ? 'Estagio 2 - Atencao' : 'Estagio 1 - Normal';
-  const stageColors = severityColors(maxSeverity);
+  const cityStageInfo = resolveCityStage(state.corData.cityStage, maxSeverity);
 
   return {
     route: state.route,
@@ -88,9 +87,9 @@ function viewModel() {
     activeOccurrences: state.activeOccurrences,
     eventLog: state.eventLog,
     cityRisk,
-    cityRing: `conic-gradient(${stageColors.border} ${cityRisk}%, rgba(255,255,255,.08) 0)`,
-    cityStatus: stage,
-    cityStatusStyle: `background:${stageColors.bg};border-color:${stageColors.border}55;color:${stageColors.text}`,
+    cityRing: `conic-gradient(${cityStageInfo.colors.border} ${cityRisk}%, rgba(255,255,255,.08) 0)`,
+    cityStatus: cityStageInfo.label,
+    cityStatusStyle: `background:${cityStageInfo.colors.bg};border-color:${cityStageInfo.colors.border}55;color:${cityStageInfo.colors.text}`,
     totalOcc,
     alertCount: regions.filter((region) => region.severity > 0).length,
     avgTemp: `${avgTemp.toFixed(1)}C`,
@@ -100,7 +99,7 @@ function viewModel() {
     sirensTotal: regions.reduce((sum, region) => sum + (region.sirensTotal || 0), 0),
     rainStationsTotal: regions.reduce((sum, region) => sum + (region.rainStations || 0), 0),
     kpis: [
-      { label: 'ESTAGIO CIDADE', value: state.corData.cityStage?.label?.replace('Estágio', 'Estagio') || stage },
+      { label: 'ESTAGIO CIDADE', value: cityStageInfo.label },
       { label: 'NIVEL DE CALOR', value: state.corData.heat ? `NC ${state.corData.heat.level}` : '-' },
       { label: 'PLUVIOMETROS', value: regions.reduce((sum, region) => sum + (region.rainStations || 0), 0) || '-' },
       { label: 'SIRENES ONLINE', value: `${regions.reduce((sum, region) => sum + (region.sirensOnline || 0), 0)}/${regions.reduce((sum, region) => sum + (region.sirensTotal || 0), 0) || '-'}` },
@@ -108,6 +107,19 @@ function viewModel() {
     ],
     ticker: buildTicker(regions, state.activeOccurrences),
   };
+}
+
+function resolveCityStage(cityStage, maxSeverity) {
+  const id = Number(cityStage?.id);
+  if (Number.isFinite(id) && id > 0) {
+    const severity = id >= 3 ? 2 : id === 2 ? 1 : 0;
+    return {
+      label: cityStage.label?.replace('Estágio', 'Estagio') || `Estagio ${id}`,
+      colors: severityColors(severity),
+    };
+  }
+  const label = maxSeverity === 2 ? 'Estagio 3 - Critico' : maxSeverity === 1 ? 'Estagio 2 - Atencao' : 'Estagio 1 - Normal';
+  return { label, colors: severityColors(maxSeverity) };
 }
 
 function buildTicker(regions, occurrences) {
