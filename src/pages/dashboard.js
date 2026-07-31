@@ -23,6 +23,9 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
     return;
   }
 
+  const previousRailScroll = root.querySelector('.rail')?.scrollTop || 0;
+  const previousGridScroll = root.querySelector('.grid')?.scrollTop || 0;
+
   root.innerHTML = `
     <div class="shell">
       ${topbar(vm, navigate)}
@@ -119,6 +122,11 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
       <div class="ticker">${vm.ticker}</div>
     </div>
   `;
+
+  const rail = root.querySelector('.rail');
+  if (rail) rail.scrollTop = previousRailScroll;
+  const grid = root.querySelector('.grid');
+  if (grid) grid.scrollTop = previousGridScroll;
 
   root.onclick = (event) => {
     const target = event.target;
