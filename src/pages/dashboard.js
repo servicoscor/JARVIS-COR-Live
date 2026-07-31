@@ -91,6 +91,7 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
         </aside>
 
         <section class="content">
+          ${feedStrip(vm)}
           <div class="kpis">
             ${vm.kpis.map((kpi) => `
               <div class="kpi">
@@ -104,7 +105,6 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
           </div>
         </section>
       </div>
-      ${feedStrip(vm)}
       <div class="ticker">${vm.ticker}</div>
     </div>
   `;
