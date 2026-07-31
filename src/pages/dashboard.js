@@ -498,7 +498,7 @@ function miniRegionMap(region, vm) {
   `;
 }
 
-function operationalMapPoints(region, vm, zoom, containerW = 190, containerH = 116, tileSize = 128, project = true) {
+function operationalMapPoints(region, vm, zoom, containerW = 140, containerH = 92, tileSize = 128, project = true) {
   const items = [];
   const rainStations = (vm.corData.rainStations || []).filter((station) => station.regionId === region.id);
   const sirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id);
@@ -554,7 +554,7 @@ function operationalMapPoints(region, vm, zoom, containerW = 190, containerH = 1
     .slice(0, 28);
 }
 
-function projectPoint(region, lat, lng, zoom, containerW = 190, containerH = 116, tileSize = 128) {
+function projectPoint(region, lat, lng, zoom, containerW = 140, containerH = 92, tileSize = 128) {
   const center = latLngToTile(region.lat, region.lng, zoom);
   const point = latLngToTile(lat, lng, zoom);
   return {
@@ -564,7 +564,7 @@ function projectPoint(region, lat, lng, zoom, containerW = 190, containerH = 116
 }
 
 function miniMapTiles(lat, lng, zoom) {
-  return mapTiles(lat, lng, zoom, 190, 116, 128);
+  return mapTiles(lat, lng, zoom, 140, 92, 128);
 }
 
 function mapTiles(lat, lng, zoom, containerW, containerH, tileSize) {

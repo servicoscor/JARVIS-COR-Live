@@ -240,9 +240,9 @@ a { color: inherit; text-decoration: none; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 18px;
-  padding: 20px 28px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px 20px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -250,8 +250,8 @@ a { color: inherit; text-decoration: none; }
 
 .card {
   border-radius: 8px;
-  min-height: 372px;
-  padding: 20px 22px;
+  min-height: 340px;
+  padding: 16px 18px;
   background: linear-gradient(165deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 45%), #111d30;
   border: 1px solid var(--line);
   border-top: 2px solid var(--accent);
@@ -269,13 +269,13 @@ a { color: inherit; text-decoration: none; }
 .communities { margin-top: 5px; color: #63758f; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .card-map {
-  height: 138px;
-  margin-top: 18px;
+  height: 112px;
+  margin-top: 14px;
   display: grid;
-  grid-template-columns: 190px 1fr;
+  grid-template-columns: 140px 1fr;
   align-items: center;
-  gap: 16px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   background: rgba(7, 15, 26, .42);
   border: 1px solid rgba(255,255,255,.055);
@@ -283,8 +283,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .card-map-tiles {
-  width: 190px;
-  height: 116px;
+  width: 140px;
+  height: 92px;
   position: relative;
   overflow: hidden;
   border-radius: 7px;
