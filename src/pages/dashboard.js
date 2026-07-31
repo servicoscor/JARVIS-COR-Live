@@ -285,8 +285,6 @@ function regionInlineDetailHtml(region, vm) {
   const sirenLine = triggeredSirens.length ? `${triggeredSirens.length} sirene(s) acionada(s) na regiao.` : 'Sirenes de encosta operando normalmente.';
   const trafficLine = `Status <strong style="color:${region.colors.text}">${statusLabel.toUpperCase()}</strong> - transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'} ${sirenLine}`;
   const teamsInField = Math.max(2, 2 + occurrences.length + (region.transformersDown > 0 ? 1 : 0) + (triggeredSirens.length > 0 ? 1 : 0));
-  const camerasTotal = region.transformersTotal * 8;
-  const camerasActive = Math.max(0, camerasTotal - triggeredSirens.length - region.transformersDown);
   const population = regionPopulationEstimate[region.id];
   const shift = new Date(vm.now).getHours() >= 7 && new Date(vm.now).getHours() < 19 ? 'Turno A' : 'Turno B';
   return `
@@ -324,9 +322,8 @@ function regionInlineDetailHtml(region, vm) {
             ${detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences)}
           </div>
         </div>
-        <div class="region-detail-grid inline cols-4">
+        <div class="region-detail-grid inline cols-3">
           <div class="detail-box"><div class="section-title">Equipes em campo</div><div class="footstat">${teamsInField}</div></div>
-          <div class="detail-box"><div class="section-title">Cameras ativas</div><div class="footstat">${camerasActive}<small>/${camerasTotal}</small></div></div>
           <div class="detail-box"><div class="section-title">Populacao estimada</div><div class="footstat">${Math.round(population / 1000)}k</div></div>
           <div class="detail-box"><div class="section-title">Plantao responsavel</div><div class="footstat footstat-text">COR-Rio - ${shift}</div></div>
         </div>
