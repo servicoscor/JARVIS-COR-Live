@@ -261,9 +261,10 @@ function regionInlineDetailHtml(region, vm) {
   const regionEvents = (vm.eventLog || []).filter((event) => event.regionId === region.id);
   const powerLine = region.transformersDown > 0
     ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
-    : 'Sem transformador fora no dado atual';
+    : 'Nenhum transformador fora';
   const statusLabel = region.colors.label === 'NORMAL' ? 'Normal' : region.colors.label;
-  const trafficLine = `${region.name} esta em status ${statusLabel.toUpperCase()}, com transito ${trafficLabels[region.trafficIdx].toLowerCase()} e chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'}`;
+  const sirenLine = triggeredSirens.length ? `${triggeredSirens.length} sirene(s) acionada(s) na regiao.` : 'Sirenes de encosta operando normalmente.';
+  const trafficLine = `Status <strong style="color:${region.colors.text}">${statusLabel.toUpperCase()}</strong> - transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'} ${sirenLine}`;
   return `
     <section class="region-inline-detail" id="${regionPanelId(region)}" style="--accent:${region.colors.border}">
       <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
@@ -287,25 +288,19 @@ function regionInlineDetailHtml(region, vm) {
           <div class="detail-box">
             <div class="section-title">Linha do tempo</div>
             ${detailTimeline(regionEvents, occurrences, wazeAlerts)}
-            <div class="section-title" style="margin-top:18px">Infraestrutura</div>
-            ${detailInfra(triggeredSirens, region, powerLine)}
           </div>
         </div>
-        <div class="region-detail-grid inline">
+        <div class="region-detail-grid inline cols-2">
           <div class="detail-box detail-box-list">
-            <div class="section-title">Ocorrencias</div>
-            ${occurrences.length ? occurrences.slice(0, 5).map((occurrence) => detailLine(occurrence.title, occurrence.lines?.[0] || occurrence.source, occurrence.severity)).join('') : '<div class="detail-empty">Sem ocorrencias derivadas das fontes conectadas.</div>'}
+            <div class="section-title">Bairros, vias e pontos criticos</div>
+            ${wazeAlerts.length ? wazeAlerts.slice(0, 6).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
           </div>
           <div class="detail-box detail-box-list">
-            <div class="section-title">Bairros, vias e pontos</div>
-            ${wazeAlerts.length ? wazeAlerts.slice(0, 5).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
-          </div>
-          <div class="detail-box detail-box-list">
-            <div class="section-title">Acoes recomendadas</div>
-            ${detailActions(region, occurrences, wazeAlerts, triggeredSirens)}
+            <div class="section-title">Infraestrutura e acao</div>
+            ${detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences)}
           </div>
         </div>
-        <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio</div>
+        <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio - Atualizado as ${vm.time}</div>
       </div>
     </section>
   `;
@@ -433,20 +428,14 @@ function detailTimeline(events, occurrences, wazeAlerts) {
     : '<div class="detail-empty">Sem atualizacao recente para esta regiao.</div>';
 }
 
-function detailInfra(triggeredSirens, region, powerLine) {
-  return `
-    <div class="infra-row"><span>Sirenes de encosta</span><strong>${triggeredSirens.length ? `${triggeredSirens.length} acionada(s)` : 'Nenhuma acionada'}</strong></div>
-    <div class="infra-row"><span>Transformadores</span><strong>${region.transformersDown > 0 ? powerLine : 'Nenhum fora'}</strong></div>
-  `;
-}
-
-function detailActions(region, occurrences, wazeAlerts, triggeredSirens = []) {
-  const actions = [];
-  if (triggeredSirens.length) actions.push(detailLine('Sirene acionada na regiao', 'Confirmar protocolo de evacuacao', 2));
-  if (wazeAlerts.length) actions.push(detailLine(`Monitorar ${wazeAlerts[0].street || region.name}`, 'Reavaliar em 30 min', 1));
-  if (occurrences.length) actions.push(detailLine('Acompanhar ocorrencias', `${occurrences.length} registro(s) ativo(s)`, occurrences.some((item) => item.severity === 2) ? 2 : 1));
-  if (!actions.length) actions.push('<div class="detail-empty">Manter monitoramento de rotina.</div>');
-  return actions.join('');
+function detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences) {
+  const rows = [
+    `<div class="infra-row"><span>Sirenes de encosta</span><strong>${triggeredSirens.length ? `${triggeredSirens.length} ACIONADA(S)` : 'NENHUMA ACIONADA'}</strong></div>`,
+    `<div class="infra-row"><span>Transformadores</span><strong>${region.transformersDown > 0 ? powerLine.toUpperCase() : 'NENHUM FORA'}</strong></div>`,
+  ];
+  if (wazeAlerts.length) rows.push(`<div class="infra-row"><span>Monitorar ${wazeAlerts[0].street || region.name}</span><strong>30 MIN</strong></div>`);
+  if (occurrences.length) rows.push(`<div class="infra-row"><span>Acompanhar ocorrencias</span><strong>${occurrences.length} ATIVA(S)</strong></div>`);
+  return rows.join('');
 }
 
 function miniRegionMap(region, vm) {
