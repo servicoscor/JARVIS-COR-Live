@@ -11,6 +11,8 @@ const groups = [
   ['cg', ['Campo Grande', 'Santa Cruz', 'Cosmos', 'Inhoaiba', 'Guaratiba', 'Barra de Guaratiba', 'Sepetiba', 'Paciencia', 'Santissimo', 'Pedra de Guaratiba', 'Parque Columbia', 'Senador Vasconcelos']],
 ];
 
+export const regionBairros = Object.fromEntries(groups);
+
 export const bairroToRegion = Object.fromEntries(
   groups.flatMap(([regionId, names]) => names.map((name) => [normalizeKey(name), regionId])),
 );

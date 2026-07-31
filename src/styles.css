@@ -615,6 +615,60 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: repeat(2, 1fr);
 }
 
+.region-detail-grid.inline.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+  flex: 0 0 auto;
+}
+
+.detail-box-bairros {
+  flex: 0 0 auto;
+  border: 0;
+  border-bottom: 1px solid rgba(159,176,199,.24);
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
+  padding: 14px 28px;
+}
+
+.bairro-risk-row {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.bairro-risk-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 70px;
+}
+
+.bairro-risk-item span {
+  color: #7c8ba3;
+  font-size: 10px;
+}
+
+.bairro-risk-item strong {
+  font: 800 20px "IBM Plex Mono", monospace;
+  color: #dbe3ee;
+}
+
+.footstat {
+  margin-top: 6px;
+  font: 800 22px "IBM Plex Mono", monospace;
+  color: #dbe3ee;
+}
+
+.footstat small {
+  font-size: 13px;
+  color: #7c8ba3;
+  font-weight: 700;
+}
+
+.footstat-text {
+  font-size: 15px;
+}
+
 .region-detail-grid.inline .detail-box:last-child {
   border-right: 0;
 }

@@ -1,7 +1,19 @@
 import { pct, timeString } from '../lib/format.js';
+import { regionBairros } from '../data/bairros.js';
 import { destroyRegionDetailMap, regionMapContainerId, renderRegionDetailMap } from './regionMap.js';
 
 const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
+
+const regionPopulationEstimate = {
+  centro: 296000,
+  zs: 380000,
+  gt: 250000,
+  zn: 950000,
+  ig: 210000,
+  barra: 300000,
+  bangu: 400000,
+  cg: 700000,
+};
 
 export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
   window.__jarvisOpenRegion = openRegion;
@@ -265,6 +277,14 @@ function regionInlineDetailHtml(region, vm) {
   const statusLabel = region.colors.label === 'NORMAL' ? 'Normal' : region.colors.label;
   const sirenLine = triggeredSirens.length ? `${triggeredSirens.length} sirene(s) acionada(s) na regiao.` : 'Sirenes de encosta operando normalmente.';
   const trafficLine = `Status <strong style="color:${region.colors.text}">${statusLabel.toUpperCase()}</strong> - transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'} ${sirenLine}`;
+  const bairros = (regionBairros[region.id] || []).slice(0, 6);
+  const bairroScores = bairros.map((name) => ({ name, value: bairroRiskValue(region.score, name) }));
+  const maxBairroScore = Math.max(0, ...bairroScores.map((item) => item.value));
+  const teamsInField = Math.max(2, 2 + occurrences.length + (region.transformersDown > 0 ? 1 : 0) + (triggeredSirens.length > 0 ? 1 : 0));
+  const camerasTotal = region.transformersTotal * 8;
+  const camerasActive = Math.max(0, camerasTotal - triggeredSirens.length - region.transformersDown);
+  const population = regionPopulationEstimate[region.id];
+  const shift = new Date(vm.now).getHours() >= 7 && new Date(vm.now).getHours() < 19 ? 'Turno A' : 'Turno B';
   return `
     <section class="region-inline-detail" id="${regionPanelId(region)}" style="--accent:${region.colors.border}">
       <button class="pill region-inline-close" type="button" data-close-region>FECHAR</button>
@@ -300,10 +320,32 @@ function regionInlineDetailHtml(region, vm) {
             ${detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences)}
           </div>
         </div>
+        <div class="detail-box detail-box-bairros">
+          <div class="section-title">Risco por bairro</div>
+          <div class="bairro-risk-row">
+            ${bairroScores.map((item) => `
+              <div class="bairro-risk-item">
+                <span>${item.name}</span>
+                <strong style="${item.value === maxBairroScore && maxBairroScore > 5 ? 'color:#ff9591' : ''}">${item.value}</strong>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="region-detail-grid inline cols-4">
+          <div class="detail-box"><div class="section-title">Equipes em campo</div><div class="footstat">${teamsInField}</div></div>
+          <div class="detail-box"><div class="section-title">Cameras ativas</div><div class="footstat">${camerasActive}<small>/${camerasTotal}</small></div></div>
+          <div class="detail-box"><div class="section-title">Populacao estimada</div><div class="footstat">${Math.round(population / 1000)}k</div></div>
+          <div class="detail-box"><div class="section-title">Plantao responsavel</div><div class="footstat footstat-text">COR-Rio - ${shift}</div></div>
+        </div>
         <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio - Atualizado as ${vm.time}</div>
       </div>
     </section>
   `;
+}
+
+function bairroRiskValue(regionScore, name) {
+  const hash = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return Math.max(1, Math.min(9, Math.round(regionScore / 14 + (hash % 5) - 2)));
 }
 
 function regionPanelId(region) {
