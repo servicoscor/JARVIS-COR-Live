@@ -257,7 +257,7 @@ function regionCard(region, vm) {
 function regionInlineDetailHtml(region, vm) {
   const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
-  const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
+  const onlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.online);
   const regionEvents = (vm.eventLog || []).filter((event) => event.regionId === region.id);
   const powerLine = region.transformersDown > 0
     ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
@@ -273,7 +273,7 @@ function regionInlineDetailHtml(region, vm) {
           ${detailKpi('Risco', region.score)}
           ${detailKpi('Ocorrencias', occurrences.length)}
           ${detailKpi('Waze 8+', wazeAlerts.length)}
-          ${detailKpi('Sirenes off', offlineSirens.length)}
+          ${detailKpi('Sirenes online', onlineSirens.length)}
           ${detailKpi('Chuva', pct(region.rain))}
           ${detailKpi('Transito', trafficLabels[region.trafficIdx])}
         </div>
@@ -288,7 +288,7 @@ function regionInlineDetailHtml(region, vm) {
             <div class="section-title">Linha do tempo</div>
             ${detailTimeline(regionEvents, occurrences, wazeAlerts)}
             <div class="section-title" style="margin-top:18px">Infraestrutura</div>
-            ${detailInfra(offlineSirens, region, powerLine)}
+            ${detailInfra(onlineSirens, region, powerLine)}
           </div>
         </div>
         <div class="region-detail-grid inline">
@@ -302,7 +302,7 @@ function regionInlineDetailHtml(region, vm) {
           </div>
           <div class="detail-box detail-box-list">
             <div class="section-title">Acoes recomendadas</div>
-            ${detailActions(region, occurrences, wazeAlerts, offlineSirens)}
+            ${detailActions(region, occurrences, wazeAlerts)}
           </div>
         </div>
         <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio</div>
@@ -433,17 +433,16 @@ function detailTimeline(events, occurrences, wazeAlerts) {
     : '<div class="detail-empty">Sem atualizacao recente para esta regiao.</div>';
 }
 
-function detailInfra(offlineSirens, region, powerLine) {
+function detailInfra(onlineSirens, region, powerLine) {
   return `
-    <div class="infra-row"><span>Sirenes de encosta</span><strong>${offlineSirens.length ? `${offlineSirens.length} fora` : '0 fora'}</strong></div>
+    <div class="infra-row"><span>Sirenes de encosta</span><strong>${onlineSirens.length} online</strong></div>
     <div class="infra-row"><span>Transformadores</span><strong>${region.transformersDown > 0 ? powerLine : 'Nenhum fora'}</strong></div>
   `;
 }
 
-function detailActions(region, occurrences, wazeAlerts, offlineSirens) {
+function detailActions(region, occurrences, wazeAlerts) {
   const actions = [];
   if (wazeAlerts.length) actions.push(detailLine(`Monitorar ${wazeAlerts[0].street || region.name}`, 'Reavaliar em 30 min', 1));
-  if (offlineSirens.length) actions.push(detailLine('Sinalizacao nas sirenes', 'Checagem em dia', 2));
   if (occurrences.length) actions.push(detailLine('Acompanhar ocorrencias', `${occurrences.length} registro(s) ativo(s)`, occurrences.some((item) => item.severity === 2) ? 2 : 1));
   if (!actions.length) actions.push('<div class="detail-empty">Manter monitoramento de rotina.</div>');
   return actions.join('');
@@ -506,13 +505,13 @@ function operationalMapPoints(region, vm, zoom, containerW = 190, containerH = 1
     });
   });
 
-  sirens.filter((siren) => !siren.online).forEach((siren) => {
+  sirens.filter((siren) => siren.online).forEach((siren) => {
     items.push({
       lat: siren.lat,
       lng: siren.lng,
       kind: 'siren',
-      level: 'critical',
-      label: `${siren.name || 'Sirene'} - offline`,
+      level: 'normal',
+      label: `${siren.name || 'Sirene'} - online`,
     });
   });
 
