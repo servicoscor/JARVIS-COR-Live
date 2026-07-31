@@ -1,5 +1,4 @@
 import { pct, timeString } from '../lib/format.js';
-import { regionBairros } from '../data/bairros.js';
 import { destroyRegionDetailMap, regionMapContainerId, renderRegionDetailMap } from './regionMap.js';
 
 const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
@@ -277,9 +276,6 @@ function regionInlineDetailHtml(region, vm) {
   const statusLabel = region.colors.label === 'NORMAL' ? 'Normal' : region.colors.label;
   const sirenLine = triggeredSirens.length ? `${triggeredSirens.length} sirene(s) acionada(s) na regiao.` : 'Sirenes de encosta operando normalmente.';
   const trafficLine = `Status <strong style="color:${region.colors.text}">${statusLabel.toUpperCase()}</strong> - transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'} ${sirenLine}`;
-  const bairros = (regionBairros[region.id] || []).slice(0, 6);
-  const bairroScores = bairros.map((name) => ({ name, value: bairroRiskValue(region.score, name) }));
-  const maxBairroScore = Math.max(0, ...bairroScores.map((item) => item.value));
   const teamsInField = Math.max(2, 2 + occurrences.length + (region.transformersDown > 0 ? 1 : 0) + (triggeredSirens.length > 0 ? 1 : 0));
   const camerasTotal = region.transformersTotal * 8;
   const camerasActive = Math.max(0, camerasTotal - triggeredSirens.length - region.transformersDown);
@@ -320,17 +316,6 @@ function regionInlineDetailHtml(region, vm) {
             ${detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences)}
           </div>
         </div>
-        <div class="detail-box detail-box-bairros">
-          <div class="section-title">Risco por bairro</div>
-          <div class="bairro-risk-row">
-            ${bairroScores.map((item) => `
-              <div class="bairro-risk-item">
-                <span>${item.name}</span>
-                <strong style="${item.value === maxBairroScore && maxBairroScore > 5 ? 'color:#ff9591' : ''}">${item.value}</strong>
-              </div>
-            `).join('')}
-          </div>
-        </div>
         <div class="region-detail-grid inline cols-4">
           <div class="detail-box"><div class="section-title">Equipes em campo</div><div class="footstat">${teamsInField}</div></div>
           <div class="detail-box"><div class="section-title">Cameras ativas</div><div class="footstat">${camerasActive}<small>/${camerasTotal}</small></div></div>
@@ -341,11 +326,6 @@ function regionInlineDetailHtml(region, vm) {
       </div>
     </section>
   `;
-}
-
-function bairroRiskValue(regionScore, name) {
-  const hash = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return Math.max(1, Math.min(9, Math.round(regionScore / 14 + (hash % 5) - 2)));
 }
 
 function regionPanelId(region) {

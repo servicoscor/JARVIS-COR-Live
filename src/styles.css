@@ -620,39 +620,6 @@ a { color: inherit; text-decoration: none; }
   flex: 0 0 auto;
 }
 
-.detail-box-bairros {
-  flex: 0 0 auto;
-  border: 0;
-  border-bottom: 1px solid rgba(159,176,199,.24);
-  border-radius: 0;
-  background: transparent;
-  min-height: 0;
-  padding: 14px 28px;
-}
-
-.bairro-risk-row {
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
-}
-
-.bairro-risk-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 70px;
-}
-
-.bairro-risk-item span {
-  color: #7c8ba3;
-  font-size: 10px;
-}
-
-.bairro-risk-item strong {
-  font: 800 20px "IBM Plex Mono", monospace;
-  color: #dbe3ee;
-}
-
 .footstat {
   margin-top: 6px;
   font: 800 22px "IBM Plex Mono", monospace;
