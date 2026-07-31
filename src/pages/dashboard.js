@@ -257,7 +257,7 @@ function regionCard(region, vm) {
 function regionInlineDetailHtml(region, vm) {
   const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
-  const onlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.online);
+  const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
   const regionEvents = (vm.eventLog || []).filter((event) => event.regionId === region.id);
   const powerLine = region.transformersDown > 0
     ? `${region.transformersDown} de ${region.transformersTotal} transformadores fora de operacao`
@@ -273,7 +273,7 @@ function regionInlineDetailHtml(region, vm) {
           ${detailKpi('Risco', region.score)}
           ${detailKpi('Ocorrencias', occurrences.length)}
           ${detailKpi('Waze 8+', wazeAlerts.length)}
-          ${detailKpi('Sirenes online', onlineSirens.length)}
+          ${detailKpi('Sirenes acionadas', triggeredSirens.length)}
           ${detailKpi('Chuva', pct(region.rain))}
           ${detailKpi('Transito', trafficLabels[region.trafficIdx])}
         </div>
@@ -288,7 +288,7 @@ function regionInlineDetailHtml(region, vm) {
             <div class="section-title">Linha do tempo</div>
             ${detailTimeline(regionEvents, occurrences, wazeAlerts)}
             <div class="section-title" style="margin-top:18px">Infraestrutura</div>
-            ${detailInfra(onlineSirens, region, powerLine)}
+            ${detailInfra(triggeredSirens, region, powerLine)}
           </div>
         </div>
         <div class="region-detail-grid inline">
@@ -302,7 +302,7 @@ function regionInlineDetailHtml(region, vm) {
           </div>
           <div class="detail-box detail-box-list">
             <div class="section-title">Acoes recomendadas</div>
-            ${detailActions(region, occurrences, wazeAlerts)}
+            ${detailActions(region, occurrences, wazeAlerts, triggeredSirens)}
           </div>
         </div>
         <div class="region-detail-footer">Fontes: Waze, COR-Rio, Rede de Sirenes, OpenStreetMap, Alerta Rio</div>
@@ -433,15 +433,16 @@ function detailTimeline(events, occurrences, wazeAlerts) {
     : '<div class="detail-empty">Sem atualizacao recente para esta regiao.</div>';
 }
 
-function detailInfra(onlineSirens, region, powerLine) {
+function detailInfra(triggeredSirens, region, powerLine) {
   return `
-    <div class="infra-row"><span>Sirenes de encosta</span><strong>${onlineSirens.length} online</strong></div>
+    <div class="infra-row"><span>Sirenes de encosta</span><strong>${triggeredSirens.length ? `${triggeredSirens.length} acionada(s)` : 'Nenhuma acionada'}</strong></div>
     <div class="infra-row"><span>Transformadores</span><strong>${region.transformersDown > 0 ? powerLine : 'Nenhum fora'}</strong></div>
   `;
 }
 
-function detailActions(region, occurrences, wazeAlerts) {
+function detailActions(region, occurrences, wazeAlerts, triggeredSirens = []) {
   const actions = [];
+  if (triggeredSirens.length) actions.push(detailLine('Sirene acionada na regiao', 'Confirmar protocolo de evacuacao', 2));
   if (wazeAlerts.length) actions.push(detailLine(`Monitorar ${wazeAlerts[0].street || region.name}`, 'Reavaliar em 30 min', 1));
   if (occurrences.length) actions.push(detailLine('Acompanhar ocorrencias', `${occurrences.length} registro(s) ativo(s)`, occurrences.some((item) => item.severity === 2) ? 2 : 1));
   if (!actions.length) actions.push('<div class="detail-empty">Manter monitoramento de rotina.</div>');
@@ -505,13 +506,13 @@ function operationalMapPoints(region, vm, zoom, containerW = 190, containerH = 1
     });
   });
 
-  sirens.filter((siren) => siren.online).forEach((siren) => {
+  sirens.filter((siren) => siren.triggered).forEach((siren) => {
     items.push({
       lat: siren.lat,
       lng: siren.lng,
       kind: 'siren',
-      level: 'normal',
-      label: `${siren.name || 'Sirene'} - online`,
+      level: 'critical',
+      label: `${siren.name || 'Sirene'} - acionada`,
     });
   });
 

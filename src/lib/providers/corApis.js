@@ -67,6 +67,7 @@ export function applyRainAndSirens(regions, corData) {
       rainStations: rainStations.length,
       sirensTotal: sirens.length,
       sirensOnline: sirens.filter((sirene) => sirene.online).length,
+      sirensTriggered: sirens.filter((sirene) => sirene.triggered).length,
       liveRain: rainStations.length > 0,
     };
   });
@@ -147,6 +148,7 @@ function normalizeSirens(xml, regions) {
       regionId: nearestRegionId(lat, lng, regions),
       online: String(status?.getAttribute('online')).toLowerCase() === 'true',
       status: status?.getAttribute('status') || '',
+      triggered: (status?.getAttribute('status') || '').trim().toLowerCase() !== 'ds',
     };
   }).filter((sirene) => Number.isFinite(sirene.lat) && Number.isFinite(sirene.lng));
 }

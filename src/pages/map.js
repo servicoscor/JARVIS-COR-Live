@@ -38,7 +38,7 @@ export function renderMapPage(root, vm, navigate) {
         ${vm.corLive ? '<div class="pill" style="color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)">COR APIs</div>' : ''}
         <label class="pill"><input id="radarToggle" type="checkbox" disabled /> Radar de chuva</label>
         <label class="pill"><input id="rainStationsToggle" type="checkbox" checked disabled /> Pluviometros</label>
-        <label class="pill"><input id="sirensToggle" type="checkbox" checked disabled /> Sirenes online</label>
+        <label class="pill"><input id="sirensToggle" type="checkbox" checked disabled /> Sirenes acionadas</label>
         <label class="pill"><input id="transformersToggle" type="checkbox" checked disabled /> Transformadores</label>
         <label class="pill"><input id="wazeToggle" type="checkbox" checked disabled /> Waze 8+</label>
         <label class="pill"><input id="occurrencesToggle" type="checkbox" checked disabled /> Ocorrencias</label>
@@ -97,7 +97,7 @@ function initOperationalLayers(vm) {
   occurrenceLayer = L.layerGroup().addTo(map);
 
   bindLayerToggle('rainStationsToggle', rainStationLayer, () => (vm.corData.rainStations || []).length > 0);
-  bindLayerToggle('sirensToggle', sirenLayer, () => onlineSirens(vm).length > 0);
+  bindLayerToggle('sirensToggle', sirenLayer, () => triggeredSirens(vm).length > 0);
   bindLayerToggle('transformersToggle', transformerLayer, () => downTransformers(vm).length > 0);
   bindLayerToggle('wazeToggle', wazeLayer, () => (vm.wazeData.trustedAlerts || []).length > 0);
   bindLayerToggle('occurrencesToggle', occurrenceLayer, () => operationalOccurrences(vm).length > 0);
@@ -125,7 +125,7 @@ function updateOperationalLayers(vm) {
   const transformerToggle = document.querySelector('#transformersToggle');
   const occurrenceToggle = document.querySelector('#occurrencesToggle');
   if (rainToggle) rainToggle.disabled = !(vm.corData.rainStations || []).length;
-  if (sirenToggle) sirenToggle.disabled = !onlineSirens(vm).length;
+  if (sirenToggle) sirenToggle.disabled = !triggeredSirens(vm).length;
   if (wazeToggle) wazeToggle.disabled = !(vm.wazeData.trustedAlerts || []).length;
   if (transformerToggle) transformerToggle.disabled = !downTransformers(vm).length;
   if (occurrenceToggle) occurrenceToggle.disabled = !operationalOccurrences(vm).length;
@@ -136,7 +136,7 @@ function updateOperationalLayers(vm) {
   transformerLayer.clearLayers();
   occurrenceLayer.clearLayers();
   (vm.corData.rainStations || []).forEach((station) => rainStationLayer.addLayer(rainStationMarker(station)));
-  onlineSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
+  triggeredSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
   (vm.wazeData.trustedAlerts || []).forEach((alert) => wazeLayer.addLayer(wazeMarker(alert)));
   downTransformers(vm).forEach((region) => transformerLayer.addLayer(transformerMarker(region)));
   operationalOccurrences(vm).forEach((occurrence) => {
@@ -146,8 +146,8 @@ function updateOperationalLayers(vm) {
   updateBairroAreas(vm);
 }
 
-function onlineSirens(vm) {
-  return (vm.corData.sirens || []).filter((siren) => siren.online);
+function triggeredSirens(vm) {
+  return (vm.corData.sirens || []).filter((siren) => siren.triggered);
 }
 
 function downTransformers(vm) {
@@ -284,8 +284,8 @@ function rainStationMarker(station) {
 
 function sirenMarker(siren) {
   const marker = L.marker([siren.lat, siren.lng], {
-    icon: divIcon('siren', 'normal', 'ON'),
-    zIndexOffset: 900,
+    icon: divIcon('siren', 'critical', 'AC'),
+    zIndexOffset: 960,
   });
   marker.bindPopup(`
     <div style="min-width:210px">
@@ -293,9 +293,9 @@ function sirenMarker(siren) {
       <div class="popup-title">${siren.name || 'Sirene sem nome'}</div>
       <div class="popup-sub">Regiao operacional: ${siren.regionId || '-'}</div>
       <div class="stats">
-        <div><div class="stat-label">STATUS</div><div class="stat-value">Online</div></div>
+        <div><div class="stat-label">STATUS</div><div class="stat-value">Acionada</div></div>
         <div><div class="stat-label">TIPO</div><div class="stat-value">${siren.type || '-'}</div></div>
-        <div><div class="stat-label">COD.</div><div class="stat-value">${siren.status || '-'}</div></div>
+        <div><div class="stat-label">CONECT.</div><div class="stat-value">${siren.online ? 'Online' : 'Offline'}</div></div>
       </div>
     </div>
   `);

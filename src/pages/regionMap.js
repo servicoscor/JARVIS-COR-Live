@@ -71,18 +71,18 @@ function drawRegionMarkers(region, vm) {
   `);
   markerLayer.addLayer(centerMarker);
 
-  const onlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.online);
-  onlineSirens.forEach((siren) => {
+  const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
+  triggeredSirens.forEach((siren) => {
     const marker = L.marker([siren.lat, siren.lng], {
-      icon: divIcon('siren', 'normal', 'ON'),
-      zIndexOffset: 900,
+      icon: divIcon('siren', 'critical', 'AC'),
+      zIndexOffset: 960,
     });
     marker.bindPopup(`
       <div style="min-width:200px">
         <div class="ap">SIRENE COR</div>
         <div class="popup-title">${siren.name || 'Sirene sem nome'}</div>
-        <div class="popup-sub">Status: Online / operando normalmente</div>
-        <div class="popup-sub">Tipo: ${siren.type || '-'} | Cod.: ${siren.status || '-'}</div>
+        <div class="popup-sub">Status: Acionada - alarme sonoro ativo</div>
+        <div class="popup-sub">Conectividade: ${siren.online ? 'Online' : 'Offline'} | Tipo: ${siren.type || '-'}</div>
       </div>
     `);
     markerLayer.addLayer(marker);

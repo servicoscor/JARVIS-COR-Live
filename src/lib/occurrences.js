@@ -10,6 +10,7 @@ export function deriveOperationalOccurrences(regions, corData, wazeData = null) 
     const h01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
     const h03 = Number.isFinite(region.rainMmH03) ? region.rainMmH03 : 0;
     const h24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
+    const sirensTriggered = region.sirensTriggered || 0;
 
     if (h01 >= 8 || h03 >= 18 || h24 >= 55) {
       occurrences.push(makeOccurrence(now, region, 'PLU-CRIT', 2, 'Chuva forte monitorada', [
@@ -22,6 +23,14 @@ export function deriveOperationalOccurrences(regions, corData, wazeData = null) 
         `${h01.toFixed(1)} mm na ultima hora`,
         `${h24.toFixed(1)} mm acumulados em 24h`,
         'Manter monitoramento dos pluviometros da regiao',
+      ]));
+    }
+
+    if (sirensTriggered > 0) {
+      occurrences.push(makeOccurrence(now, region, 'SIR-ACIONADA', sirensTriggered >= 2 ? 2 : 1, 'Sirene acionada', [
+        `${sirensTriggered} sirene(s) acionada(s) nessa regiao`,
+        'Alarme sonoro ativo - confirmar area de risco',
+        'Acompanhar protocolo de evacuacao se aplicavel',
       ]));
     }
 
