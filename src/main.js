@@ -214,7 +214,11 @@ function triggerOperationalEvent() {
 
 async function refreshWeather() {
   try {
-    state.regions = await fetchOpenMeteo(state.regions);
+    const updated = await fetchOpenMeteo(state.regions);
+    state.regions = state.regions.map((region) => {
+      const match = updated.find((item) => item.id === region.id);
+      return match ? { ...region, temp: match.temp, rain: match.rain, liveWeather: match.liveWeather } : region;
+    });
     state.liveWeather = true;
     updateFeed('openMeteo', true, 'ok');
   } catch {
