@@ -100,7 +100,7 @@ function viewModel() {
     rainStationsTotal: regions.reduce((sum, region) => sum + (region.rainStations || 0), 0),
     kpis: [
       { label: 'ESTAGIO CIDADE', value: cityStageInfo.label },
-      { label: 'NIVEL DE CALOR', value: state.corData.heat ? `Nivel de calor ${state.corData.heat.level}` : '-' },
+      { label: 'NIVEL DE CALOR', value: state.corData.heat ? `Calor ${state.corData.heat.level}` : '-' },
       { label: 'PLUVIOMETROS', value: regions.reduce((sum, region) => sum + (region.rainStations || 0), 0) || '-' },
       { label: 'SIRENES ONLINE', value: `${regions.reduce((sum, region) => sum + (region.sirensOnline || 0), 0)}/${regions.reduce((sum, region) => sum + (region.sirensTotal || 0), 0) || '-'}` },
       { label: 'RISCO DA CIDADE', value: cityRisk },
