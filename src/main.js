@@ -10,6 +10,7 @@ import { fetchWazeTraffic } from './lib/providers/waze.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderMapPage, destroyMapPage } from './pages/map.js';
 import { destroyRegionDetailMap } from './pages/regionMap.js';
+import { alertsEnabled, playAlertTone, setAlertsEnabled, unlockAudio } from './lib/alerts.js';
 
 const app = document.querySelector('#app');
 
@@ -42,6 +43,8 @@ const state = {
   activeEvent: null,
   eventLog: [],
   riskHistory: null,
+  seenCriticalIds: new Set(),
+  newAlerts: [],
 };
 
 const timers = [];
@@ -88,6 +91,8 @@ function viewModel() {
     activeOccurrences: state.activeOccurrences,
     eventLog: state.eventLog,
     riskHistory: state.riskHistory,
+    alertsEnabled: alertsEnabled(),
+    newAlerts: state.newAlerts,
     cityRisk,
     cityRing: `conic-gradient(${cityStageInfo.colors.border} ${cityRisk}%, rgba(255,255,255,.08) 0)`,
     cityStatus: cityStageInfo.label,
@@ -140,7 +145,7 @@ function render() {
     renderMapPage(app, vm, navigate);
   } else {
     destroyMapPage();
-    renderDashboard(app, vm, navigate, openRegion, closeRegion);
+    renderDashboard(app, vm, navigate, openRegion, closeRegion, toggleAlerts, dismissAlert);
   }
 }
 
@@ -254,8 +259,39 @@ async function refreshCorApis() {
 
 function recomputeOperationalState() {
   const occurrences = deriveOperationalOccurrences(state.regions, state.corData, state.wazeData);
+  detectNewCriticalOccurrences(occurrences);
   state.activeOccurrences = occurrences;
   state.regions = applyOperationalOccurrences(state.regions, occurrences, state.wazeData);
+}
+
+function detectNewCriticalOccurrences(occurrences) {
+  const critical = occurrences.filter((occurrence) => occurrence.severity === 2);
+  const newOnes = critical.filter((occurrence) => !state.seenCriticalIds.has(occurrence.id));
+
+  if (newOnes.length) {
+    if (alertsEnabled()) playAlertTone();
+    state.newAlerts = [...newOnes, ...state.newAlerts].slice(0, 5);
+    newOnes.forEach((occurrence) => {
+      window.setTimeout(() => {
+        state.newAlerts = state.newAlerts.filter((item) => item.id !== occurrence.id);
+        renderUnlessRegionPanelOpen();
+      }, 12000);
+    });
+  }
+
+  state.seenCriticalIds = new Set(critical.map((occurrence) => occurrence.id));
+}
+
+function toggleAlerts() {
+  const next = !alertsEnabled();
+  setAlertsEnabled(next);
+  if (next) unlockAudio();
+  render();
+}
+
+function dismissAlert(id) {
+  state.newAlerts = state.newAlerts.filter((item) => item.id !== id);
+  render();
 }
 
 async function refreshWazeTraffic() {

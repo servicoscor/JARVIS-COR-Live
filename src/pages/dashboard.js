@@ -14,9 +14,11 @@ const regionPopulationEstimate = {
   cg: 700000,
 };
 
-export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
+export function renderDashboard(root, vm, navigate, openRegion, closeRegion, toggleAlerts, dismissAlert) {
   window.__jarvisOpenRegion = openRegion;
   window.__jarvisCloseRegion = closeRegion;
+  window.__jarvisToggleAlerts = toggleAlerts;
+  window.__jarvisDismissAlert = dismissAlert;
 
   if (vm.standalone) {
     renderStandaloneRegion(root, vm);
@@ -29,6 +31,7 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
   root.innerHTML = `
     <div class="shell">
       ${topbar(vm, navigate)}
+      ${alertToastStack(vm)}
       <div class="main">
         <aside class="rail">
           <div class="risk-ring" style="background:${vm.cityRing}">
@@ -150,6 +153,18 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion) {
       return;
     }
 
+    const alertsButton = target.closest?.('[data-toggle-alerts]');
+    if (alertsButton) {
+      toggleAlerts();
+      return;
+    }
+
+    const dismissButton = target.closest?.('[data-dismiss-alert]');
+    if (dismissButton) {
+      dismissAlert(dismissButton.dataset.dismissAlert);
+      return;
+    }
+
     if (target.classList?.contains('region-modal')) {
       closeRegion();
     }
@@ -185,9 +200,27 @@ function topbar(vm) {
       ${vm.liveWeather ? '<div class="pill" style="color:#5fb8ff;background:rgba(74,157,255,.1);border-color:rgba(74,157,255,.3)"><span class="dot"></span>Open-Meteo</div>' : ''}
       ${vm.corLive ? '<div class="pill" style="color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)"><span class="dot"></span>COR APIs</div>' : ''}
       ${vm.wazeLive ? '<div class="pill" style="color:#f0c069;background:rgba(221,162,60,.1);border-color:rgba(221,162,60,.3)"><span class="dot"></span>Waze</div>' : ''}
+      <button class="pill" type="button" data-toggle-alerts style="${vm.alertsEnabled ? 'color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)' : 'color:#7c8ba3'}">${vm.alertsEnabled ? '\u{1F514} Alertas sonoros: ON' : '\u{1F515} Ativar alertas sonoros'}</button>
       <button class="pill" data-route="map" type="button">Mapa Operacional</button>
       <div class="pill" style="color:#4fe8d3;background:rgba(23,201,181,.1);border-color:rgba(23,201,181,.3)"><span class="dot"></span>${vm.feeds.filter((feed) => feed.ok).length}/${vm.feeds.length} APIs</div>
     </header>
+  `;
+}
+
+function alertToastStack(vm) {
+  if (!vm.newAlerts?.length) return '';
+  return `
+    <div class="alert-toast-stack">
+      ${vm.newAlerts.map((alert) => `
+        <div class="alert-toast">
+          <div>
+            <strong>ALERTA CRITICO</strong>
+            <div class="alert-toast-body">${alert.regionName}: ${alert.title}</div>
+          </div>
+          <button type="button" class="alert-toast-close" data-dismiss-alert="${alert.id}">&times;</button>
+        </div>
+      `).join('')}
+    </div>
   `;
 }
 
