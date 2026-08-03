@@ -305,7 +305,7 @@ function regionInlineDetailHtml(region, vm) {
             <div class="section-title">Leitura operacional</div>
             <div class="region-detail-summary">${trafficLine}</div>
             <div class="section-title" style="margin-top:18px">Tendencia de risco - 7 dias</div>
-            ${riskTrend(region)}
+            ${riskTrend(region, vm)}
           </div>
           <div class="detail-box">
             <div class="section-title">Linha do tempo</div>
@@ -423,21 +423,34 @@ function detailLine(title, text, severity = 0) {
   return `<div class="detail-line"><span style="background:${color}"></span><div><strong>${title}</strong><small>${text}</small></div></div>`;
 }
 
-function riskTrend(region) {
-  const values = [-2, -1, -1, 0, 1, 0, 2].map((offset, index) => {
-    const value = Math.max(8, Math.min(100, region.score + (offset * 7) + (index % 2 ? 5 : 0)));
-    return { label: ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'HOJE'][index], value };
+function riskTrend(region, vm) {
+  const history = vm.riskHistory?.regions?.[region.id];
+  const days = vm.riskHistory?.days;
+
+  const values = (history && days ? history : new Array(7).fill(null)).map((entry, index, arr) => {
+    const isToday = index === arr.length - 1;
+    const label = isToday ? 'HOJE' : (entry?.date ? weekdayLabel(entry.date) : '-');
+    return { label, value: isToday ? region.score : (entry?.maxScore ?? null) };
   });
+
   return `
     <div class="risk-trend">
       ${values.map((item, index) => `
         <div class="risk-trend-item">
-          <span style="height:${item.value}%${index === values.length - 1 ? ';background:var(--accent)' : ''}"></span>
+          ${item.value == null
+            ? '<span class="risk-trend-empty" title="Sem dado suficiente ainda"></span>'
+            : `<span style="height:${item.value}%${index === values.length - 1 ? ';background:var(--accent)' : ''}"></span>`}
           <small>${item.label}</small>
         </div>
       `).join('')}
     </div>
   `;
+}
+
+function weekdayLabel(dateStr) {
+  const labels = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return labels[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
 
 function detailTimeline(events, occurrences, wazeAlerts) {

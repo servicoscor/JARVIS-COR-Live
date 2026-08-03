@@ -667,6 +667,12 @@ a { color: inherit; text-decoration: none; }
   background: rgba(255,255,255,.14);
 }
 
+.risk-trend-item .risk-trend-empty {
+  height: 12px;
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,.18);
+}
+
 .risk-trend-item small,
 .timeline-row strong,
 .infra-row strong {

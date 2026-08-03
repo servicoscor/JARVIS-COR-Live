@@ -41,6 +41,7 @@ const state = {
   activeOccurrences: [],
   activeEvent: null,
   eventLog: [],
+  riskHistory: null,
 };
 
 const timers = [];
@@ -86,6 +87,7 @@ function viewModel() {
     activeEvent: state.activeEvent,
     activeOccurrences: state.activeOccurrences,
     eventLog: state.eventLog,
+    riskHistory: state.riskHistory,
     cityRisk,
     cityRing: `conic-gradient(${cityStageInfo.colors.border} ${cityRisk}%, rgba(255,255,255,.08) 0)`,
     cityStatus: cityStageInfo.label,
@@ -274,6 +276,42 @@ function updateFeed(key, ok, latency) {
   state.feeds = state.feeds.map((feed) => (feed.key === key ? { ...feed, ok, latency } : feed));
 }
 
+async function postRiskSnapshot() {
+  try {
+    const regions = scoreRegions();
+    const payload = {
+      ts: Date.now(),
+      regions: Object.fromEntries(regions.map((region) => [region.id, {
+        score: region.score,
+        severity: region.severity,
+        occurrences: region.occurrences,
+        rain: Math.round(safeNum(region.rain)),
+        trafficIdx: region.trafficIdx,
+        transformersDown: region.transformersDown,
+        sirensTriggered: region.sirensTriggered || 0,
+      }])),
+    };
+    await fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Falha ao registrar snapshot nao deve interromper a operacao do painel.
+  }
+}
+
+async function fetchRiskHistory() {
+  try {
+    const res = await fetch('/api/history?days=7');
+    if (!res.ok) throw new Error('Falha ao buscar historico de risco');
+    state.riskHistory = await res.json();
+  } catch {
+    // Mantem o historico anterior (ou null) se a busca falhar.
+  }
+  renderUnlessRegionPanelOpen();
+}
+
 window.addEventListener('hashchange', () => {
   setState({
     route: location.hash === '#map' ? 'map' : 'dashboard',
@@ -287,6 +325,8 @@ timers.push(window.setInterval(triggerOperationalEvent, 7500));
 timers.push(window.setInterval(refreshWeather, 5 * 60 * 1000));
 timers.push(window.setInterval(refreshCorApis, 2 * 60 * 1000));
 timers.push(window.setInterval(refreshWazeTraffic, 60 * 1000));
+timers.push(window.setInterval(postRiskSnapshot, 10 * 60 * 1000));
+timers.push(window.setInterval(fetchRiskHistory, 10 * 60 * 1000));
 
 recomputeOperationalState();
 render();
@@ -294,3 +334,5 @@ window.setTimeout(triggerOperationalEvent, 1400);
 refreshWeather();
 refreshCorApis();
 refreshWazeTraffic();
+fetchRiskHistory();
+window.setTimeout(postRiskSnapshot, 30 * 1000);
