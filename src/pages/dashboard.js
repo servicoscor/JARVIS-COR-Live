@@ -287,8 +287,7 @@ function standaloneRegionHtml(region, vm) {
         </div>
       </header>
       <main class="ops-status-stage ${alertCards ? 'has-alerts' : ''}">
-        ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
-        ${alertCards}
+        ${alertCards || opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
       </main>
     </section>
   `;
