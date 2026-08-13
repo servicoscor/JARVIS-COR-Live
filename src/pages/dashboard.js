@@ -287,13 +287,7 @@ function standaloneRegionHtml(region, vm) {
         </div>
       </header>
 
-      <div class="ops-kpis">
-        ${opsKpi('Ocorrencias', occurrences.length)}
-        ${opsKpi('Waze 8+', wazeAlerts.length)}
-        ${opsKpi('Sirenes off', offlineSirens.length)}
-        ${opsKpi('Chuva', pct(region.rain))}
-        ${opsKpi('Transito', trafficLabels[region.trafficIdx])}
-      </div>
+      ${opsKpis(region, occurrences, wazeAlerts, offlineSirens)}
 
       <main class="ops-main">
         <section class="ops-box ops-reading">
@@ -311,6 +305,19 @@ function standaloneRegionHtml(region, vm) {
 
 function opsKpi(label, value) {
   return `<div class="ops-kpi"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
+  const rain = Number.isFinite(region.rain) ? region.rain : 0;
+  const items = [
+    occurrences.length > 0 ? opsKpi('Ocorrencias', occurrences.length) : '',
+    wazeAlerts.length > 0 ? opsKpi('Waze 8+', wazeAlerts.length) : '',
+    offlineSirens.length > 0 ? opsKpi('Sirenes off', offlineSirens.length) : '',
+    rain > 0 ? opsKpi('Chuva', pct(region.rain)) : '',
+    region.trafficIdx > 0 ? opsKpi('Transito', trafficLabels[region.trafficIdx]) : '',
+  ].filter(Boolean);
+
+  return items.length ? `<div class="ops-kpis" style="--ops-kpi-count:${items.length}">${items.join('')}</div>` : '';
 }
 
 function standaloneReading(region, occurrences, wazeAlerts, triggeredSirens) {

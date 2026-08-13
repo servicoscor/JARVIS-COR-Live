@@ -599,7 +599,7 @@ a { color: inherit; text-decoration: none; }
 
 .ops-kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--ops-kpi-count, 5), 1fr);
   background: #f6f6f6;
   border-bottom: 1px solid #a8a8a8;
 }
