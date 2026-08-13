@@ -250,7 +250,7 @@ function renderStandaloneRegion(root, vm) {
     return;
   }
 
-  root.innerHTML = `<div class="standalone-shell">${regionInlineDetailHtml(region, vm)}</div>`;
+  root.innerHTML = `<div class="standalone-shell standalone-light">${standaloneRegionHtml(region, vm)}</div>`;
 
   root.onclick = (event) => {
     const closeButton = event.target.closest?.('[data-close-region]');
@@ -264,6 +264,177 @@ function renderStandaloneRegion(root, vm) {
 
 function buildStandaloneRegionUrl(regionId) {
   return `${location.origin}${location.pathname}?standalone=1#region-${regionId}`;
+}
+
+function standaloneRegionHtml(region, vm) {
+  const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
+  const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
+  const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
+  const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
+  const bairros = regionBairros[region.id] || [];
+  const statusText = region.colors.label === 'NORMAL' ? 'STATUS NORMAL' : `STATUS ${region.colors.label}`;
+  const statusClass = region.severity === 2 ? 'critical' : region.severity === 1 ? 'attention' : 'normal';
+
+  return `
+    <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
+      <div class="ops-map" id="${regionMapContainerId(region)}"></div>
+
+      <header class="ops-header">
+        <div>
+          <div class="ops-ap">${region.ap} · CENTRO DE OPERACOES</div>
+          <h1>${region.name}</h1>
+          <p>${region.communities.slice(0, 5).join(' · ')}</p>
+        </div>
+        <div class="ops-header-side">
+          <div><span>Atualizado</span><strong>${vm.time}</strong></div>
+          <div class="ops-risk"><span>Risco</span><strong>${region.score}</strong></div>
+          <div class="ops-status ${statusClass}">${statusText}</div>
+        </div>
+      </header>
+
+      <div class="ops-kpis">
+        ${opsKpi('Risco', region.score)}
+        ${opsKpi('Ocorrencias', occurrences.length)}
+        ${opsKpi('Waze 8+', wazeAlerts.length)}
+        ${opsKpi('Sirenes off', offlineSirens.length)}
+        ${opsKpi('Chuva', pct(region.rain))}
+        ${opsKpi('Transito', trafficLabels[region.trafficIdx])}
+      </div>
+
+      <main class="ops-main">
+        <section class="ops-box ops-reading">
+          <div class="ops-section-title">Leitura operacional</div>
+          <p>${standaloneReading(region, occurrences, wazeAlerts, triggeredSirens)}</p>
+          <div class="ops-section-title">Tendencia de risco · 7 dias</div>
+          ${opsRiskTrend(region, vm)}
+        </section>
+
+        <section class="ops-box">
+          <div class="ops-section-title">Linha do tempo</div>
+          ${opsTimeline(region, occurrences, wazeAlerts, triggeredSirens)}
+          <div class="ops-section-title ops-gap">Infraestrutura</div>
+          ${opsInfra(region, triggeredSirens, offlineSirens)}
+        </section>
+      </main>
+
+      <footer class="ops-bottom">
+        <section class="ops-box">
+          <div class="ops-section-title">Ocorrencias</div>
+          ${opsOccurrences(occurrences)}
+        </section>
+        <section class="ops-box">
+          <div class="ops-section-title">Bairros, vias e pontos</div>
+          ${opsCriticalPoints(region, wazeAlerts, bairros)}
+        </section>
+        <section class="ops-box">
+          <div class="ops-section-title">Acoes recomendadas</div>
+          ${opsActions(decision, wazeAlerts, triggeredSirens)}
+        </section>
+      </footer>
+    </section>
+  `;
+}
+
+function opsKpi(label, value) {
+  return `<div class="ops-kpi"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function standaloneReading(region, occurrences, wazeAlerts, triggeredSirens) {
+  const status = region.colors.label === 'NORMAL' ? 'NORMAL' : region.colors.label;
+  const mainWaze = wazeAlerts[0]?.street ? ` em ${wazeAlerts[0].street}` : '';
+  const transformerLine = region.transformersDown > 0
+    ? `${region.transformersDown} transformador(es) fora no dado agregado da zona`
+    : 'nenhum transformador fora no dado atual';
+  const sirenLine = triggeredSirens.length
+    ? `${triggeredSirens.length} sirene(s) acionada(s)`
+    : 'sirenes de encosta operando normalmente';
+  const wazeLine = wazeAlerts.length
+    ? `${wazeAlerts.length} alerta(s) de transito seguem em observacao${mainWaze}`
+    : 'nenhum alerta Waze 8+ ativo';
+
+  return `${region.name} esta em status <strong>${status}</strong>, com transito ${trafficLabels[region.trafficIdx].toLowerCase()} e chuva regional em ${pct(region.rain)}. ${transformerLine}. ${wazeLine}; ${sirenLine} em todos os pontos monitorados. ${occurrences.length ? `${occurrences.length} ocorrencia(s) operacional(is) ativa(s).` : 'Sem ocorrencia operacional ativa nas fontes conectadas.'}`;
+}
+
+function opsRiskTrend(region, vm) {
+  const history = vm.riskHistory?.regions?.[region.id];
+  const days = vm.riskHistory?.days;
+  const values = (history && days ? history : new Array(7).fill(null)).map((entry, index, arr) => {
+    const isToday = index === arr.length - 1;
+    return {
+      label: isToday ? 'HOJE' : (entry?.date ? weekdayLabel(entry.date) : ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'][index] || '-'),
+      value: isToday ? region.score : (entry?.maxScore ?? null),
+    };
+  });
+
+  return `
+    <div class="ops-trend">
+      ${values.map((item) => `
+        <div>
+          <span class="${item.value == null ? 'empty' : ''}" style="${item.value == null ? '' : `height:${Math.max(12, item.value)}%`}"></span>
+          <small>${item.label}</small>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function opsTimeline(region, occurrences, wazeAlerts, triggeredSirens) {
+  const rows = [
+    ...wazeAlerts.slice(0, 2).map((alert) => ['Waze', `${alert.street || 'Via em observacao'} · ${alert.trust} votos`]),
+    ...occurrences.slice(0, 2).map((occurrence) => [occurrence.source, occurrence.title]),
+    ...(triggeredSirens.length ? [['Sirenes', `${triggeredSirens.length} acionada(s)`]] : []),
+    ...(region.transformersDown > 0 ? [['Energia', `${region.transformersDown}/${region.transformersTotal} transformadores fora`]] : []),
+  ].slice(0, 5);
+
+  if (!rows.length) rows.push(['Agora', 'Todas operacionais']);
+  return rows.map(([time, title]) => `<div class="ops-row"><strong>${time}</strong><span>${title}</span></div>`).join('');
+}
+
+function opsInfra(region, triggeredSirens, offlineSirens) {
+  return `
+    <div class="ops-row"><span>Sirenes de encosta</span><b>${triggeredSirens.length ? `${triggeredSirens.length} acionada(s)` : '0 acionadas'}</b></div>
+    <div class="ops-row"><span>Sirenes offline</span><b>${offlineSirens.length}</b></div>
+    <div class="ops-row"><span>Transformadores</span><b>${region.transformersDown ? `${region.transformersDown} fora` : 'Nenhum fora'}</b></div>
+  `;
+}
+
+function opsOccurrences(occurrences) {
+  if (!occurrences.length) return '<div class="ops-empty">Sem ocorrencias derivadas das fontes conectadas.</div>';
+  return occurrences.slice(0, 4).map((occurrence) => `
+    <div class="ops-list-line">
+      <strong>${occurrence.title}</strong>
+      <span>${occurrence.source} · ${occurrence.lines?.[0] || 'em acompanhamento'}</span>
+    </div>
+  `).join('');
+}
+
+function opsCriticalPoints(region, wazeAlerts, bairros) {
+  const streets = streetMap[region.id] || [];
+  const rows = wazeAlerts.slice(0, 4).map((alert) => `
+    <div class="ops-point">
+      <strong>${alert.street || 'Via sem nome'}</strong>
+      <span>${alert.type}</span>
+      <em>${alert.trust} votos</em>
+    </div>
+  `);
+
+  if (!rows.length) {
+    return `
+      <div class="ops-list-line"><strong>${streets[0] || region.name}</strong><span>Via de referencia operacional</span></div>
+      <div class="ops-list-line"><strong>${bairros.slice(0, 4).join(', ') || 'Bairros monitorados'}</strong><span>Grupo de bairros da zona</span></div>
+    `;
+  }
+  return rows.join('');
+}
+
+function opsActions(decision, wazeAlerts, triggeredSirens) {
+  const primary = wazeAlerts[0]?.street ? `Monitorar ${wazeAlerts[0].street}` : decision.action;
+  return `
+    <div class="ops-row"><span>${primary}</span><b>${decision.deadline}</b></div>
+    <div class="ops-row"><span>${triggeredSirens.length ? 'Checar sirenes acionadas' : 'Sem acao nas sirenes'}</span><b>${triggeredSirens.length ? 'Imediato' : 'Rotina'}</b></div>
+    <div class="ops-row"><span>Responsavel sugerido</span><b>${decision.owner}</b></div>
+  `;
 }
 
 function regionCard(region, vm) {
