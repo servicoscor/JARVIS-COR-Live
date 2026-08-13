@@ -272,6 +272,7 @@ function standaloneRegionHtml(region, vm) {
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
   const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
   const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
+  const alertCards = opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens);
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -285,8 +286,9 @@ function standaloneRegionHtml(region, vm) {
           <div><span>Atualizado</span><strong>${vm.time}</strong></div>
         </div>
       </header>
-      <main class="ops-status-stage">
+      <main class="ops-status-stage ${alertCards ? 'has-alerts' : ''}">
         ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
+        ${alertCards}
       </main>
     </section>
   `;
@@ -307,6 +309,93 @@ function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
   ].filter(Boolean);
 
   return items.length ? `<div class="ops-kpis" style="--ops-kpi-count:${items.length}">${items.join('')}</div>` : '';
+}
+
+function opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens) {
+  const cards = [
+    ...wazeAlerts.slice(0, 4).map((alert) => ({
+      type: alert.type === 'ACCIDENT' ? 'ACIDENTE WAZE' : 'TRANSITO WAZE',
+      title: alert.street || 'Via sem nome',
+      meta: `${alert.city || region.name} · ${alert.pubMillis ? timeString(new Date(alert.pubMillis)).slice(0, 8) : 'agora'}`,
+      rows: [
+        ['Fonte', `Waze · ${alert.trust || 0}`],
+        ['Confianca', (alert.trust || 0) >= 20 ? 'Alta' : (alert.trust || 0) >= 8 ? 'Media' : 'Baixa'],
+      ],
+      severity: alert.type === 'ACCIDENT' ? 2 : 1,
+    })),
+    ...occurrences.filter((occurrence) => !occurrence.type.startsWith('WAZ')).slice(0, 4).map((occurrence) => ({
+      type: occurrenceTitle(occurrence.type),
+      title: occurrence.title,
+      meta: `${occurrence.source} · ${timeString(new Date(occurrence.startedAt)).slice(0, 8)}`,
+      rows: (occurrence.lines || []).slice(0, 2).map((line, index) => [index === 0 ? 'Detalhe' : 'Acao', line]),
+      severity: occurrence.severity,
+    })),
+    ...triggeredSirens.slice(0, 3).map((siren) => ({
+      type: 'SIRENE ACIONADA',
+      title: siren.name || 'Sirene sem nome',
+      meta: `${region.name} · agora`,
+      rows: [
+        ['Status', 'Acionada'],
+        ['Conexao', siren.online ? 'Online' : 'Offline'],
+      ],
+      severity: 2,
+    })),
+  ];
+
+  if (region.transformersDown > 0) {
+    cards.push({
+      type: 'FALTA DE ENERGIA',
+      title: region.name,
+      meta: 'Dado agregado por zona',
+      rows: [
+        ['Transf.', `${region.transformersDown} fora`],
+        ['Total', `${region.transformersTotal} cadastrados`],
+      ],
+      severity: region.transformersDown >= 3 ? 2 : 1,
+    });
+  }
+
+  const rainH01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
+  const rainH24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
+  if (rainH01 >= 2 || rainH24 >= 25) {
+    cards.push({
+      type: rainH01 >= 8 || rainH24 >= 55 ? 'ALAGAMENTO' : 'CHUVA',
+      title: region.name,
+      meta: 'Alerta Rio · agora',
+      rows: [
+        ['1 hora', `${rainH01.toFixed(1)} mm`],
+        ['24 horas', `${rainH24.toFixed(1)} mm`],
+      ],
+      severity: rainH01 >= 8 || rainH24 >= 55 ? 2 : 1,
+    });
+  }
+
+  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 4);
+  if (!visible.length) return '';
+  return `<div class="ops-alert-cards">${visible.map(opsAlertCard).join('')}</div>`;
+}
+
+function opsAlertCard(card) {
+  return `
+    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'}">
+      <div class="ops-alert-head"><span>!</span><strong>${card.type}</strong></div>
+      <div class="ops-alert-body">
+        <h2>${card.title}</h2>
+        <p>${card.meta}</p>
+        <div class="ops-alert-rows">
+          ${card.rows.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join('')}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function occurrenceTitle(type) {
+  if (type.startsWith('PLU')) return 'ALAGAMENTO';
+  if (type.startsWith('SIR')) return 'SIRENE';
+  if (type.startsWith('ENE')) return 'FALTA DE ENERGIA';
+  if (type.startsWith('CAL')) return 'CALOR';
+  return 'OCORRENCIA';
 }
 
 function standaloneReading(region, occurrences, wazeAlerts, triggeredSirens) {
