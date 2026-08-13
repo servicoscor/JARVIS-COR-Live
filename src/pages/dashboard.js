@@ -272,9 +272,6 @@ function standaloneRegionHtml(region, vm) {
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
   const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
   const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
-  const bairros = regionBairros[region.id] || [];
-  const statusText = region.colors.label === 'NORMAL' ? 'STATUS NORMAL' : `STATUS ${region.colors.label}`;
-  const statusClass = region.severity === 2 ? 'critical' : region.severity === 1 ? 'attention' : 'normal';
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -282,19 +279,15 @@ function standaloneRegionHtml(region, vm) {
 
       <header class="ops-header">
         <div>
-          <div class="ops-ap">${region.ap} · CENTRO DE OPERACOES</div>
           <h1>${region.name}</h1>
           <p>${region.communities.slice(0, 5).join(' · ')}</p>
         </div>
         <div class="ops-header-side">
           <div><span>Atualizado</span><strong>${vm.time}</strong></div>
-          <div class="ops-risk"><span>Risco</span><strong>${region.score}</strong></div>
-          <div class="ops-status ${statusClass}">${statusText}</div>
         </div>
       </header>
 
       <div class="ops-kpis">
-        ${opsKpi('Risco', region.score)}
         ${opsKpi('Ocorrencias', occurrences.length)}
         ${opsKpi('Waze 8+', wazeAlerts.length)}
         ${opsKpi('Sirenes off', offlineSirens.length)}
@@ -308,27 +301,10 @@ function standaloneRegionHtml(region, vm) {
         </section>
 
         <section class="ops-box">
-          <div class="ops-section-title">Linha do tempo</div>
-          ${opsTimeline(region, occurrences, wazeAlerts, triggeredSirens)}
-          <div class="ops-section-title ops-gap">Infraestrutura</div>
+          <div class="ops-section-title">Infraestrutura</div>
           ${opsInfra(region, triggeredSirens, offlineSirens)}
         </section>
       </main>
-
-      <footer class="ops-bottom">
-        <section class="ops-box">
-          <div class="ops-section-title">Ocorrencias</div>
-          ${opsOccurrences(occurrences)}
-        </section>
-        <section class="ops-box">
-          <div class="ops-section-title">Bairros, vias e pontos</div>
-          ${opsCriticalPoints(region, wazeAlerts, bairros)}
-        </section>
-        <section class="ops-box">
-          <div class="ops-section-title">Acoes recomendadas</div>
-          ${opsActions(decision, wazeAlerts, triggeredSirens)}
-        </section>
-      </footer>
     </section>
   `;
 }
