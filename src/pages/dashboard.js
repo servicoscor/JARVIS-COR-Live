@@ -275,8 +275,6 @@ function standaloneRegionHtml(region, vm) {
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
-      <div class="ops-map" id="${regionMapContainerId(region)}"></div>
-
       <header class="ops-header">
         <div>
           <h1>${region.name}</h1>
@@ -286,18 +284,8 @@ function standaloneRegionHtml(region, vm) {
           <div><span>Atualizado</span><strong>${vm.time}</strong></div>
         </div>
       </header>
-
-      ${opsKpis(region, occurrences, wazeAlerts, offlineSirens)}
-
-      <main class="ops-main">
-        <section class="ops-box ops-reading">
-          ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
-        </section>
-
-        <section class="ops-box">
-          <div class="ops-section-title">Infraestrutura</div>
-          ${opsInfra(region, triggeredSirens, offlineSirens)}
-        </section>
+      <main class="ops-status-stage">
+        ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
       </main>
     </section>
   `;
