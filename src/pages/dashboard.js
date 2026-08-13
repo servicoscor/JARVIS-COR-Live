@@ -1,4 +1,6 @@
 import { pct, timeString } from '../lib/format.js';
+import { regionBairros } from '../data/bairros.js';
+import { streetMap } from '../data/regions.js';
 import { destroyRegionDetailMap, regionMapContainerId, renderRegionDetailMap } from './regionMap.js';
 
 const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
@@ -159,6 +161,12 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion, tog
       return;
     }
 
+    const sizeButton = target.closest?.('[data-card-size-action]');
+    if (sizeButton) {
+      adjustCardSize(sizeButton.dataset.cardRegion, sizeButton.dataset.cardSizeAction);
+      return;
+    }
+
     const dismissButton = target.closest?.('[data-dismiss-alert]');
     if (dismissButton) {
       dismissAlert(dismissButton.dataset.dismissAlert);
@@ -168,6 +176,11 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion, tog
     if (target.classList?.contains('region-modal')) {
       closeRegion();
     }
+  };
+
+  root.onpointerdown = (event) => {
+    const resizeHandle = event.target.closest?.('[data-resize-card]');
+    if (resizeHandle) startCardResize(event, resizeHandle.dataset.resizeCard);
   };
 
   if (vm.openRegionId) {
@@ -266,8 +279,10 @@ function buildStandaloneRegionUrl(regionId) {
 
 function regionCard(region, vm) {
   const ring = `conic-gradient(${region.colors.border} ${region.score}%, rgba(255,255,255,.08) 0)`;
+  const size = cardSize(region.id);
+  const sizeStyle = size ? `--card-width:${size.width}px;--card-height:${size.height}px;` : '';
   return `
-    <article class="card" style="--accent:${region.colors.border}">
+    <article class="card" data-region-card="${region.id}" style="--accent:${region.colors.border};${sizeStyle}">
       <div class="card-head">
         <div style="min-width:0">
           <div class="ap">${region.ap}</div>
@@ -301,9 +316,129 @@ function regionCard(region, vm) {
         ${stat('ACID.', region.wazeAccidents || '-')}
         ${stat('JAM', region.wazeMaxJamLevel || '-')}
       </div>
+      <div class="card-size-controls" aria-label="Ajustar tamanho do card">
+        <button type="button" data-card-region="${region.id}" data-card-size-action="narrow" title="Diminuir largura">W-</button>
+        <button type="button" data-card-region="${region.id}" data-card-size-action="wide" title="Aumentar largura">W+</button>
+        <button type="button" data-card-region="${region.id}" data-card-size-action="short" title="Diminuir altura">H-</button>
+        <button type="button" data-card-region="${region.id}" data-card-size-action="tall" title="Aumentar altura">H+</button>
+        <button type="button" data-card-region="${region.id}" data-card-size-action="reset" title="Restaurar tamanho">RST</button>
+      </div>
       <button class="region-open-btn" type="button" data-open-region="${region.id}">ABRIR</button>
+      <button class="card-resize-handle" type="button" data-resize-card="${region.id}" aria-label="Redimensionar card" title="Redimensionar card"></button>
     </article>
   `;
+}
+
+const cardSizeStorageKey = 'jarvis-card-sizes-v1';
+
+function readCardSizes() {
+  try {
+    return JSON.parse(localStorage.getItem(cardSizeStorageKey) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function writeCardSizes(sizes) {
+  localStorage.setItem(cardSizeStorageKey, JSON.stringify(sizes));
+}
+
+function cardSize(regionId) {
+  const size = readCardSizes()[regionId];
+  if (!size) return null;
+  const width = Number(size.width);
+  const height = Number(size.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+  return { width, height };
+}
+
+function saveCardSize(regionId, width, height) {
+  const sizes = readCardSizes();
+  sizes[regionId] = {
+    width: Math.round(width),
+    height: Math.round(height),
+  };
+  writeCardSizes(sizes);
+}
+
+function clearCardSize(regionId) {
+  const sizes = readCardSizes();
+  delete sizes[regionId];
+  writeCardSizes(sizes);
+}
+
+function adjustCardSize(regionId, action) {
+  const card = document.querySelector(`[data-region-card="${regionId}"]`);
+  if (!card || !regionId) return;
+
+  if (action === 'reset') {
+    clearCardSize(regionId);
+    card.style.removeProperty('--card-width');
+    card.style.removeProperty('--card-height');
+    return;
+  }
+
+  const rect = card.getBoundingClientRect();
+  const current = cardSize(regionId) || { width: rect.width, height: rect.height };
+  const next = {
+    width: current.width,
+    height: current.height,
+  };
+
+  if (action === 'wide') next.width += 60;
+  if (action === 'narrow') next.width -= 60;
+  if (action === 'tall') next.height += 60;
+  if (action === 'short') next.height -= 60;
+
+  next.width = clampSize(next.width, 250, Math.min(620, Math.max(300, window.innerWidth - 80)));
+  next.height = clampSize(next.height, 340, Math.max(420, window.innerHeight - 190));
+  card.style.setProperty('--card-width', `${next.width}px`);
+  card.style.setProperty('--card-height', `${next.height}px`);
+  saveCardSize(regionId, next.width, next.height);
+}
+
+function startCardResize(event, regionId) {
+  const card = event.target.closest('[data-region-card]');
+  if (!card || !regionId) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  card.setPointerCapture?.(event.pointerId);
+  card.classList.add('is-resizing');
+
+  const rect = card.getBoundingClientRect();
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const startWidth = rect.width;
+  const startHeight = rect.height;
+  const minWidth = 250;
+  const maxWidth = Math.min(620, Math.max(300, window.innerWidth - 80));
+  const minHeight = 340;
+  const maxHeight = Math.max(420, window.innerHeight - 190);
+
+  const onMove = (moveEvent) => {
+    const width = clampSize(startWidth + moveEvent.clientX - startX, minWidth, maxWidth);
+    const height = clampSize(startHeight + moveEvent.clientY - startY, minHeight, maxHeight);
+    card.style.setProperty('--card-width', `${width}px`);
+    card.style.setProperty('--card-height', `${height}px`);
+  };
+
+  const onUp = () => {
+    const finalRect = card.getBoundingClientRect();
+    saveCardSize(regionId, finalRect.width, finalRect.height);
+    card.classList.remove('is-resizing');
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  };
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, { once: true });
+  window.addEventListener('pointercancel', onUp, { once: true });
+}
+
+function clampSize(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function regionInlineDetailHtml(region, vm) {
@@ -317,6 +452,9 @@ function regionInlineDetailHtml(region, vm) {
   const statusLabel = region.colors.label === 'NORMAL' ? 'Normal' : region.colors.label;
   const sirenLine = triggeredSirens.length ? `${triggeredSirens.length} sirene(s) acionada(s) na regiao.` : 'Sirenes de encosta operando normalmente.';
   const trafficLine = `Status <strong style="color:${region.colors.text}">${statusLabel.toUpperCase()}</strong> - transito ${trafficLabels[region.trafficIdx].toLowerCase()}, chuva regional em ${pct(region.rain)}. ${powerLine}. ${wazeAlerts.length ? `${wazeAlerts.length} alerta(s) Waze 8+ seguem em observacao.` : 'Nenhum alerta Waze 8+ ativo no momento.'} ${sirenLine}`;
+  const breakdown = riskBreakdown(region, occurrences, wazeAlerts, triggeredSirens);
+  const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
+  const bairros = regionBairros[region.id] || [];
   const teamsInField = Math.max(2, 2 + occurrences.length + (region.transformersDown > 0 ? 1 : 0) + (triggeredSirens.length > 0 ? 1 : 0));
   const population = regionPopulationEstimate[region.id];
   const shift = new Date(vm.now).getHours() >= 7 && new Date(vm.now).getHours() < 19 ? 'Turno A' : 'Turno B';
@@ -329,30 +467,34 @@ function regionInlineDetailHtml(region, vm) {
           ${detailKpi('Risco', region.score)}
           ${detailKpi('Ocorrencias', occurrences.length)}
           ${detailKpi('Waze 8+', wazeAlerts.length)}
-          ${detailKpi('Sirenes acionadas', triggeredSirens.length)}
+          ${detailKpi('Energia', transformerKpi(region))}
           ${detailKpi('Chuva', pct(region.rain))}
           ${detailKpi('Transito', trafficLabels[region.trafficIdx])}
         </div>
         <div class="region-detail-layout">
           <div class="detail-box detail-box-main">
             <div class="section-title">Leitura operacional</div>
-            <div class="region-detail-summary">${trafficLine}</div>
+            ${operationalReading(region, breakdown, decision)}
             <div class="section-title" style="margin-top:18px">Tendencia de risco - 7 dias</div>
             ${riskTrend(region, vm)}
           </div>
           <div class="detail-box">
             <div class="section-title">Linha do tempo</div>
-            ${detailTimeline(regionEvents, occurrences, wazeAlerts)}
+            ${detailTimeline(regionEvents, occurrences, wazeAlerts, region, triggeredSirens)}
           </div>
         </div>
         <div class="region-detail-grid inline cols-2">
           <div class="detail-box detail-box-list">
             <div class="section-title">Bairros, vias e pontos criticos</div>
-            ${wazeAlerts.length ? wazeAlerts.slice(0, 6).map((alert) => detailLine(alert.street || 'Via sem nome', `${alert.type} | ${alert.trust} votos Waze`, alert.type === 'ACCIDENT' ? 2 : 1)).join('') : '<div class="detail-empty">Sem via Waze 8+ nessa regiao.</div>'}
+            ${criticalPoints(region, wazeAlerts, occurrences, bairros)}
           </div>
           <div class="detail-box detail-box-list">
-            <div class="section-title">Infraestrutura e acao</div>
-            ${detailInfraAction(region, powerLine, triggeredSirens, wazeAlerts, occurrences)}
+            <div class="section-title">Proxima acao</div>
+            ${nextActionHtml(decision)}
+            <div class="section-title" style="margin-top:16px">Energia / transformadores</div>
+            ${transformerStatusHtml(region)}
+            <div class="section-title" style="margin-top:16px">Fontes do dado</div>
+            ${dataSourceHtml(region, triggeredSirens, wazeAlerts, teamsInField, population)}
           </div>
         </div>
         <div class="region-detail-grid inline cols-3">
@@ -456,6 +598,10 @@ function detailLine(title, text, severity = 0) {
   return `<div class="detail-line"><span style="background:${color}"></span><div><strong>${title}</strong><small>${text}</small></div></div>`;
 }
 
+function num(value) {
+  return Number.isFinite(value) ? value.toFixed(1) : '-';
+}
+
 function riskTrend(region, vm) {
   const history = vm.riskHistory?.regions?.[region.id];
   const days = vm.riskHistory?.days;
@@ -480,21 +626,217 @@ function riskTrend(region, vm) {
   `;
 }
 
+function riskBreakdown(region, occurrences, wazeAlerts, triggeredSirens) {
+  const rain = Math.max(
+    Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0,
+    (Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0) / 8,
+  );
+  const items = [
+    { label: 'Transito', value: region.trafficIdx * 4, detail: trafficLabels[region.trafficIdx] },
+    { label: 'Energia', value: Math.min(region.transformersDown * 3, 12), detail: `${region.transformersDown} fora` },
+    { label: 'Ocorrencias', value: Math.min(occurrences.length * 3, 12), detail: `${occurrences.length} ativa(s)` },
+    { label: 'Chuva', value: Math.min(Math.round(rain), 12), detail: `${num(region.rainMmH01)} mm/h` },
+    { label: 'Sirenes', value: triggeredSirens.length * 8, detail: `${triggeredSirens.length} acionada(s)` },
+    { label: 'Waze 8+', value: Math.min(wazeAlerts.length * 4, 12), detail: `${wazeAlerts.length} alerta(s)` },
+  ].filter((item) => item.value > 0);
+
+  return items.length ? items.sort((a, b) => b.value - a.value) : [{ label: 'Normalidade', value: 0, detail: 'Sem fator relevante' }];
+}
+
+function operationalDecision(region, occurrences, wazeAlerts, triggeredSirens) {
+  if (triggeredSirens.length) {
+    return {
+      action: 'Confirmar sirene acionada e protocolo de area de risco',
+      owner: 'Defesa Civil / COR',
+      deadline: 'Imediato',
+      trigger: 'Nova sirene acionada ou chuva forte em 1h',
+      severity: 2,
+    };
+  }
+  if (occurrences.some((occurrence) => occurrence.severity === 2 && occurrence.type === 'WAZ-ACC')) {
+    return {
+      action: `Acompanhar acidente em ${wazeAlerts[0]?.street || region.name}`,
+      owner: 'Mobilidade / CET-Rio',
+      deadline: '15 min',
+      trigger: 'Bloqueio, nova confirmacao Waze ou reflexo em via estrutural',
+      severity: 2,
+    };
+  }
+  if (region.transformersDown >= 3) {
+    return {
+      action: 'Acionar concessionaria e validar impacto em equipamentos urbanos',
+      owner: 'Infraestrutura / Energia',
+      deadline: '30 min',
+      trigger: 'Aumento de transformadores fora ou impacto em area sensivel',
+      severity: 2,
+    };
+  }
+  if (wazeAlerts.length || region.trafficIdx >= 2) {
+    return {
+      action: `Monitorar ${wazeAlerts[0]?.street || 'vias principais da zona'}`,
+      owner: 'Mobilidade / CET-Rio',
+      deadline: '30 min',
+      trigger: 'Novo alerta Waze 8+ ou piora do transito',
+      severity: 1,
+    };
+  }
+  if (occurrences.length) {
+    return {
+      action: 'Acompanhar ocorrencias ativas e reavaliar no proximo ciclo',
+      owner: 'Sala de situacao',
+      deadline: '30 min',
+      trigger: 'Mudanca para criticidade alta',
+      severity: 1,
+    };
+  }
+  return {
+    action: 'Manter monitoramento regular da zona',
+    owner: 'Sala de situacao',
+    deadline: 'Proximo ciclo',
+    trigger: 'Entrada de chuva, sirene, Waze 8+ ou falha de energia',
+    severity: 0,
+  };
+}
+
+function operationalReading(region, breakdown, decision) {
+  const mainReasons = breakdown.slice(0, 3).map((item) => item.label.toLowerCase()).join(' + ');
+  const status = region.colors.label === 'NORMAL' ? 'NORMAL' : region.colors.label;
+  return `
+    <div class="op-reading">
+      <div class="op-situation">
+        <span>SITUACAO ATUAL</span>
+        <strong style="color:${region.colors.text}">${status}${mainReasons ? ` por ${mainReasons}` : ''}</strong>
+      </div>
+      <div class="risk-breakdown">
+        ${breakdown.map((item) => `
+          <div class="risk-breakdown-row">
+            <span>${item.label}</span>
+            <strong>${item.value ? `+${item.value}` : '0'}</strong>
+            <small>${item.detail}</small>
+          </div>
+        `).join('')}
+      </div>
+      <div class="op-action-callout" style="border-color:${decision.severity === 2 ? '#e6534f66' : decision.severity === 1 ? '#dda23c66' : '#17c9b566'}">
+        <span>ACAO RECOMENDADA</span>
+        <strong>${decision.action}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function criticalPoints(region, wazeAlerts, occurrences, bairros) {
+  const rows = [
+    ...wazeAlerts.slice(0, 5).map((alert) => ({
+      title: alert.street || 'Via sem nome',
+      text: `${alert.type} | ${alert.trust} votos Waze | ${alert.subType || 'sem subtipo'}`,
+      severity: alert.type === 'ACCIDENT' ? 2 : 1,
+    })),
+    ...occurrences.filter((occurrence) => !occurrence.type.startsWith('WAZ')).slice(0, 4).map((occurrence) => ({
+      title: occurrence.title,
+      text: `${occurrence.source} | ${occurrence.lines?.[0] || 'ocorrencia ativa'}`,
+      severity: occurrence.severity,
+    })),
+  ];
+
+  if (!rows.length) {
+    return `
+      <div class="detail-empty">Sem ponto critico ativo nas fontes conectadas.</div>
+      <div class="critical-neighborhoods">Bairros monitorados: ${bairros.slice(0, 10).join(', ')}${bairros.length > 10 ? '...' : ''}</div>
+      <div class="critical-neighborhoods">Vias de referencia: ${(streetMap[region.id] || []).join(', ') || '-'}</div>
+    `;
+  }
+
+  return `
+    ${rows.map((item) => detailLine(item.title, item.text, item.severity)).join('')}
+    <div class="critical-neighborhoods">Bairros da zona: ${bairros.slice(0, 8).join(', ')}${bairros.length > 8 ? '...' : ''}</div>
+  `;
+}
+
+function nextActionHtml(decision) {
+  const color = decision.severity === 2 ? '#ff9591' : decision.severity === 1 ? '#f0c069' : '#5fe8d6';
+  return `
+    <div class="next-action" style="--action-color:${color}">
+      <strong>${decision.action}</strong>
+      <div class="infra-row"><span>Responsavel sugerido</span><b>${decision.owner}</b></div>
+      <div class="infra-row"><span>Prazo</span><b>${decision.deadline}</b></div>
+      <div class="infra-row"><span>Escalar se</span><b>${decision.trigger}</b></div>
+    </div>
+  `;
+}
+
+function dataSourceHtml(region, triggeredSirens, wazeAlerts, teamsInField, population) {
+  return `
+    <div class="source-grid">
+      ${sourcePill('Real', 'Waze', `${wazeAlerts.length} alerta(s)`)}
+      ${sourcePill('Real', 'Sirenes', `${triggeredSirens.length}/${region.sirensTotal || '-'}`)}
+      ${sourcePill('Real', 'Chuva', `${num(region.rainMmH01)} mm/h`)}
+      ${sourcePill('Derivado', 'Energia', `${region.transformersDown} fora`)}
+      ${sourcePill('Estimado', 'Equipes', teamsInField)}
+      ${sourcePill('Estimado', 'Populacao', `${Math.round(population / 1000)}k`)}
+    </div>
+  `;
+}
+
+function sourcePill(kind, label, value) {
+  return `<div class="source-pill"><span>${kind}</span><strong>${label}</strong><small>${value}</small></div>`;
+}
+
+function transformerKpi(region) {
+  return region.transformersDown > 0 ? `${region.transformersDown} fora` : 'Normal';
+}
+
+function transformerStatusHtml(region) {
+  const down = region.transformersDown || 0;
+  const total = region.transformersTotal || 0;
+  const active = Math.max(total - down, 0);
+  const pctDown = total ? Math.round((down / total) * 100) : 0;
+  const severity = down >= 3 ? 2 : down > 0 ? 1 : 0;
+  const color = severity === 2 ? '#ff9591' : severity === 1 ? '#f0c069' : '#5fe8d6';
+  const status = severity === 2 ? 'Critico' : severity === 1 ? 'Atencao' : 'Normal';
+  const action = severity === 2
+    ? 'Acionar concessionaria, validar bairros sensiveis e acompanhar reincidencia.'
+    : severity === 1
+      ? 'Monitorar recomposicao e confirmar se ha impacto local.'
+      : 'Sem acao imediata para energia.';
+
+  return `
+    <div class="transformer-panel" style="--energy-color:${color}">
+      <div class="transformer-head">
+        <strong>${status}</strong>
+        <span>${down}/${total} fora</span>
+      </div>
+      <div class="transformer-meter">
+        <span style="width:${pctDown}%"></span>
+      </div>
+      <div class="transformer-grid">
+        <div><span>Fora</span><strong>${down}</strong></div>
+        <div><span>Ativos</span><strong>${active}</strong></div>
+        <div><span>Total</span><strong>${total || '-'}</strong></div>
+        <div><span>% fora</span><strong>${pctDown}%</strong></div>
+      </div>
+      <div class="transformer-note">${action}</div>
+    </div>
+  `;
+}
+
 function weekdayLabel(dateStr) {
   const labels = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
   const [year, month, day] = dateStr.split('-').map(Number);
   return labels[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
 }
 
-function detailTimeline(events, occurrences, wazeAlerts) {
+function detailTimeline(events, occurrences, wazeAlerts, region, triggeredSirens = []) {
   const items = [
     ...events.slice(0, 2).map((event) => ({
       time: timeString(new Date(event.startedAt)).slice(0, 5),
       title: event.title,
     })),
-    ...occurrences.slice(0, 1).map((occurrence) => ({ time: 'Agora', title: occurrence.title })),
-    ...wazeAlerts.slice(0, 1).map((alert) => ({ time: 'Waze', title: alert.street || 'Via em observacao' })),
-  ].slice(0, 4);
+    { time: 'Agora', title: `${region.name} em ${region.colors.label.toLowerCase()} - risco ${region.score}` },
+    ...occurrences.slice(0, 2).map((occurrence) => ({ time: occurrence.source, title: occurrence.title })),
+    ...wazeAlerts.slice(0, 2).map((alert) => ({ time: 'Waze', title: `${alert.street || 'Via em observacao'} - ${alert.trust} votos` })),
+    ...(triggeredSirens.length ? [{ time: 'Sirenes', title: `${triggeredSirens.length} acionada(s)` }] : []),
+    ...(region.transformersDown > 0 ? [{ time: 'Energia', title: `${region.transformersDown}/${region.transformersTotal} transformadores fora` }] : []),
+  ].slice(0, 6);
 
   return items.length
     ? items.map((item) => `<div class="timeline-row"><strong>${item.time}</strong><span>${item.title}</span></div>`).join('')

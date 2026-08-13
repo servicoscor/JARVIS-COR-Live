@@ -1,5 +1,5 @@
-import { bairroName, regionIdForFeature } from '../data/bairros.js';
-import { normalizeKey, pct } from '../lib/format.js';
+import { bairroName, regionBairros, regionIdForFeature } from '../data/bairros.js';
+import { normalizeKey } from '../lib/format.js';
 
 let map;
 let bairroLayer;
@@ -16,6 +16,7 @@ export function renderMapPage(root, vm, navigate) {
   if (map && document.querySelector('#map')) {
     const ticker = document.querySelector('.ticker');
     if (ticker) ticker.textContent = vm.ticker;
+    updateZonePanel(vm);
     updateOperationalLayers(vm);
     return;
   }
@@ -47,6 +48,9 @@ export function renderMapPage(root, vm, navigate) {
       </header>
       <main class="map-page">
         <div id="map"></div>
+        <aside class="map-zone-panel" data-map-zone-panel>
+          ${zonePanel(vm)}
+        </aside>
         <div class="map-area-legend">
           <span><i class="critical"></i>Area critica</span>
           <span><i class="attention"></i>Area em atencao</span>
@@ -58,6 +62,17 @@ export function renderMapPage(root, vm, navigate) {
   `;
 
   root.querySelector('[data-route="dashboard"]').addEventListener('click', () => navigate('dashboard'));
+  root.addEventListener('click', (event) => {
+    const zoneButton = event.target.closest?.('[data-map-zone]');
+    if (!zoneButton || !map) return;
+    const region = currentVm?.regions?.find((item) => item.id === zoneButton.dataset.mapZone);
+    if (!region) return;
+    map.flyTo([region.lat, region.lng], Math.max(map.getZoom(), 12), { duration: 0.65 });
+    L.popup({ maxWidth: 360 })
+      .setLatLng([region.lat, region.lng])
+      .setContent(popupHtml(region, null, currentVm.activeEvent, currentVm))
+      .openOn(map);
+  });
   initMap(vm);
 }
 
@@ -144,6 +159,7 @@ function updateOperationalLayers(vm) {
     if (occurrence.wazeAlert) occurrenceLayer.addLayer(occurrenceMarker(occurrence));
   });
   updateBairroAreas(vm);
+  updateZonePanel(vm);
 }
 
 function triggeredSirens(vm) {
@@ -206,7 +222,7 @@ async function loadBairros(vm) {
       const name = bairroName(feature.properties);
       if (excluded.has(normalizeKey(name))) return;
       const region = regionForFeature(feature, vm);
-      layer.bindTooltip(region ? `${name} - ${region.name}` : name, { sticky: true });
+      layer.bindTooltip(bairroTooltip(name, region), { sticky: true });
       layer.on('mouseover', () => layer.setStyle({ weight: 2.4, fillOpacity: Math.max((bairroAreaStyle(feature, currentVm).fillOpacity || 0) + 0.12, 0.22), opacity: 0.95 }));
       layer.on('mouseout', () => layer.setStyle(bairroAreaStyle(feature, currentVm)));
       layer.on('click', () => {
@@ -220,8 +236,15 @@ async function loadBairros(vm) {
 function updateBairroAreas(vm) {
   if (!bairroLayer) return;
   bairroLayer.eachLayer((layer) => {
-    if (layer.feature) layer.setStyle(bairroAreaStyle(layer.feature, vm));
+    if (!layer.feature) return;
+    layer.setStyle(bairroAreaStyle(layer.feature, vm));
+    const region = regionForFeature(layer.feature, vm);
+    layer.setTooltipContent(bairroTooltip(bairroName(layer.feature.properties), region));
   });
+}
+
+function bairroTooltip(name, region) {
+  return region ? `${name} - ${region.name} | risco ${region.score} | ${region.colors.label}` : name;
 }
 
 function regionForFeature(feature, vm) {
@@ -304,21 +327,32 @@ function sirenMarker(siren) {
 
 function transformerMarker(region) {
   const level = region.transformersDown >= 3 ? 'critical' : 'attention';
+  const active = Math.max(region.transformersTotal - region.transformersDown, 0);
+  const pctDown = region.transformersTotal ? Math.round((region.transformersDown / region.transformersTotal) * 100) : 0;
   const marker = L.marker([region.lat, region.lng], {
-    icon: divIcon('power', level, `${region.transformersDown}`),
+    icon: divIcon('power', level, `${region.transformersDown}F`),
     zIndexOffset: 960,
   });
   marker.bindPopup(`
-    <div style="min-width:220px">
-      <div class="ap">TRANSFORMADORES</div>
+    <div style="min-width:280px">
+      <div class="ap">ENERGIA / TRANSFORMADORES</div>
       <div class="popup-title">${region.name}</div>
       <div class="popup-sub">Agregado operacional por regiao</div>
       <div class="stats">
         <div><div class="stat-label">FORA</div><div class="stat-value">${region.transformersDown}</div></div>
+        <div><div class="stat-label">ATIVOS</div><div class="stat-value">${active}</div></div>
         <div><div class="stat-label">TOTAL</div><div class="stat-value">${region.transformersTotal}</div></div>
-        <div><div class="stat-label">ATIVOS</div><div class="stat-value">${region.transformersTotal - region.transformersDown}</div></div>
       </div>
-      <div class="popup-sub" style="margin-top:10px">Sem coordenada individual da rede eletrica. Ponto exibido no centro operacional da regiao.</div>
+      <div class="stats">
+        <div><div class="stat-label">% FORA</div><div class="stat-value">${pctDown}%</div></div>
+        <div><div class="stat-label">IMPACTO</div><div class="stat-value">${region.transformersDown >= 3 ? 'Alto' : 'Medio'}</div></div>
+        <div><div class="stat-label">ACAO</div><div class="stat-value">${region.transformersDown >= 3 ? 'Acionar' : 'Monitorar'}</div></div>
+      </div>
+      <div class="popup-event">
+        <div class="popup-line"><span>01</span>${region.transformersDown >= 3 ? 'Acionar concessionaria e validar bairros sensiveis.' : 'Monitorar recomposicao e confirmar impacto local.'}</div>
+        <div class="popup-line"><span>02</span>Sem coordenada individual da rede eletrica integrada.</div>
+        <div class="popup-line"><span>03</span>Ponto exibido no centro operacional da zona.</div>
+      </div>
     </div>
   `);
   return marker;
@@ -416,6 +450,63 @@ function occurrenceLabel(type) {
   return 'OCR';
 }
 
+function updateZonePanel(vm) {
+  const panel = document.querySelector('[data-map-zone-panel]');
+  if (panel) panel.innerHTML = zonePanel(vm);
+}
+
+function zonePanel(vm) {
+  const regions = [...(vm.regions || [])].sort((a, b) => b.score - a.score);
+  const totals = {
+    critical: regions.filter((region) => region.severity === 2).length,
+    attention: regions.filter((region) => region.severity === 1).length,
+    occurrences: vm.activeOccurrences?.length || 0,
+  };
+
+  return `
+    <div class="map-zone-head">
+      <div>
+        <div class="section-title">Leitura por zona</div>
+        <strong>${totals.critical ? `${totals.critical} critica(s)` : totals.attention ? `${totals.attention} em atencao` : 'Operacao normal'}</strong>
+      </div>
+      <span class="mono">${totals.occurrences} OCR</span>
+    </div>
+    <div class="map-zone-list">
+      ${regions.map((region) => zoneCard(region, vm)).join('')}
+    </div>
+  `;
+}
+
+function zoneCard(region, vm) {
+  const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
+  const bairros = regionBairros[region.id] || [];
+  const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const triggered = region.sirensTriggered || 0;
+  const h01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
+  const h24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
+
+  return `
+    <button class="map-zone-card" type="button" data-map-zone="${region.id}" style="--zone-color:${region.colors.border};--zone-bg:${region.colors.bg}">
+      <div class="map-zone-title">
+        <span>${region.name}</span>
+        <strong>${region.score}</strong>
+      </div>
+      <div class="map-zone-meta">
+        <span>${region.ap}</span>
+        <span>${region.colors.label}</span>
+        <span>${bairros.length} bairros</span>
+      </div>
+      <div class="map-zone-metrics">
+        <span>Chuva ${h01.toFixed(1)}mm/h</span>
+        <span>24h ${h24.toFixed(1)}mm</span>
+        <span>Sirenes ${triggered}/${region.sirensTotal || '-'}</span>
+        <span>Waze ${wazeAlerts.length}</span>
+      </div>
+      <div class="map-zone-footer">${occurrences[0]?.title || operationalAdvice(region, occurrences)}</div>
+    </button>
+  `;
+}
+
 function divIcon(kind, level, label) {
   return L.divIcon({
     className: '',
@@ -455,18 +546,24 @@ async function initRainRadar() {
 }
 
 function popupHtml(region, bairro, activeEvent, vm = currentVm) {
-  const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
   const event = activeEvent?.regionId === region.id ? activeEvent : null;
   const occurrences = (vm?.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
+  const bairros = regionBairros[region.id] || [];
+  const wazeAlerts = (vm?.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const h01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
+  const h03 = Number.isFinite(region.rainMmH03) ? region.rainMmH03 : 0;
+  const h24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
+  const triggered = region.sirensTriggered || 0;
+
   return `
-    <div style="min-width:250px">
+    <div style="min-width:310px">
       <div class="ap">AREA OPERACIONAL - ${region.ap}</div>
-      <div class="popup-title">${bairro || region.name}</div>
-      <div class="popup-sub">${region.name} - ${region.communities.slice(0, 2).join(' | ')}</div>
+      <div class="popup-title">${bairro ? `${bairro} / ${region.name}` : region.name}</div>
+      <div class="popup-sub">${bairros.length} bairros monitorados - ${region.communities.slice(0, 3).join(' | ')}</div>
       <div class="stats">
         <div><div class="stat-label">TEMP</div><div class="stat-value">${region.temp.toFixed(1)}C</div></div>
-        <div><div class="stat-label">CHUVA</div><div class="stat-value">${pct(region.rain)}</div></div>
-        <div><div class="stat-label">TRANS.</div><div class="stat-value">${trafficLabels[region.trafficIdx]}</div></div>
+        <div><div class="stat-label">CHUVA</div><div class="stat-value">${rainStatus(h01, h24)}</div></div>
+        <div><div class="stat-label">TRANSITO</div><div class="stat-value">${trafficLabels[region.trafficIdx]}</div></div>
       </div>
       <div class="stats">
         <div><div class="stat-label">TRANSF.</div><div class="stat-value">${region.transformersTotal - region.transformersDown}/${region.transformersTotal}</div></div>
@@ -474,11 +571,22 @@ function popupHtml(region, bairro, activeEvent, vm = currentVm) {
         <div><div class="stat-label">RISCO</div><div class="stat-value" style="color:${region.colors.text}">${region.score}</div></div>
       </div>
       <div class="stats">
-        <div><div class="stat-label">MM 1H</div><div class="stat-value">${Number.isFinite(region.rainMmH01) ? region.rainMmH01.toFixed(1) : '-'}</div></div>
-        <div><div class="stat-label">MM 24H</div><div class="stat-value">${Number.isFinite(region.rainMmH24) ? region.rainMmH24.toFixed(1) : '-'}</div></div>
-        <div><div class="stat-label">SIRENES</div><div class="stat-value">${region.sirensTotal ? `${region.sirensOnline}/${region.sirensTotal}` : '-'}</div></div>
+        <div><div class="stat-label">MM 1H</div><div class="stat-value">${h01.toFixed(1)}</div></div>
+        <div><div class="stat-label">MM 3H</div><div class="stat-value">${h03.toFixed(1)}</div></div>
+        <div><div class="stat-label">MM 24H</div><div class="stat-value">${h24.toFixed(1)}</div></div>
+      </div>
+      <div class="stats">
+        <div><div class="stat-label">SIRENES</div><div class="stat-value">${region.sirensTotal ? `${triggered}/${region.sirensTotal}` : '-'}</div></div>
+        <div><div class="stat-label">WAZE 8+</div><div class="stat-value">${wazeAlerts.length}</div></div>
+        <div><div class="stat-label">ENERGIA</div><div class="stat-value">${region.transformersDown} fora</div></div>
       </div>
       <div class="pill" style="margin-top:10px;background:${region.colors.bg};border-color:${region.colors.border}55;color:${region.colors.text}">${region.colors.label}</div>
+      <div class="popup-event">
+        <div style="font-weight:800;color:${region.colors.text}">Leitura da zona</div>
+        <div class="popup-line"><span>01</span>${operationalAdvice(region, occurrences)}</div>
+        <div class="popup-line"><span>02</span>Vias de referencia: ${regionKeyStreets(region).join(', ') || '-'}</div>
+        <div class="popup-line"><span>03</span>Bairros no grupo: ${bairros.slice(0, 7).join(', ')}${bairros.length > 7 ? '...' : ''}</div>
+      </div>
       ${occurrences.length ? `
         <div class="popup-event">
           <div style="font-weight:800;color:${region.colors.text}">Ocorrencias na area</div>
@@ -493,4 +601,30 @@ function popupHtml(region, bairro, activeEvent, vm = currentVm) {
       ` : ''}
     </div>
   `;
+}
+
+function rainStatus(h01, h24) {
+  if (h01 >= 8 || h24 >= 55) return 'Forte';
+  if (h01 >= 2 || h24 >= 25) return 'Atencao';
+  return 'Baixa';
+}
+
+function operationalAdvice(region, occurrences) {
+  if (occurrences.some((occurrence) => occurrence.severity === 2)) return 'Priorizar despacho, monitorar vias criticas e validar areas sensiveis.';
+  if ((region.sirensTriggered || 0) > 0) return 'Confirmar sirenes acionadas e acompanhar protocolo de area de risco.';
+  if (region.transformersDown >= 3) return 'Acionar concessionaria e monitorar impacto em equipamentos urbanos.';
+  if (region.trafficIdx >= 2) return 'Acompanhar congestionamentos e possiveis bloqueios nas vias principais.';
+  if (region.severity === 1) return 'Manter acompanhamento da zona e reavaliar a cada atualizacao.';
+  return 'Sem acionamento prioritario nas fontes conectadas.';
+}
+
+function regionKeyStreets(region) {
+  const streets = {
+    centro: ['Av. Presidente Vargas', 'Av. Rio Branco'],
+    zs: ['Av. Atlantica', 'Av. Niemeyer'],
+    gt: ['Rua Conde de Bonfim', 'Av. Maracana'],
+    zn: ['Av. Brasil', 'Linha Amarela'],
+    barra: ['Av. das Americas', 'Av. Brasil'],
+  };
+  return streets[region.id] || [];
 }

@@ -114,19 +114,33 @@ function drawRegionMarkers(region, vm) {
     const level = region.transformersDown >= 3 ? 'critical' : 'attention';
     const lat = region.lat + 0.006;
     const lng = region.lng + 0.006;
+    const active = Math.max(region.transformersTotal - region.transformersDown, 0);
+    const pctDown = region.transformersTotal ? Math.round((region.transformersDown / region.transformersTotal) * 100) : 0;
+    const status = region.transformersDown >= 3 ? 'Critico' : 'Atencao';
     const marker = L.marker([lat, lng], {
-      icon: divIcon('power', level, `${region.transformersDown}`),
+      icon: divIcon('power', level, `${region.transformersDown}F`),
       zIndexOffset: 960,
     });
     marker.bindPopup(`
-      <div style="min-width:210px">
-        <div class="ap">TRANSFORMADORES</div>
+      <div style="min-width:280px">
+        <div class="ap">ENERGIA / TRANSFORMADORES</div>
         <div class="popup-title">${region.name}</div>
+        <div class="popup-sub">Agregado operacional por zona - status ${status}</div>
         <div class="stats">
           <div><div class="stat-label">FORA</div><div class="stat-value">${region.transformersDown}</div></div>
+          <div><div class="stat-label">ATIVOS</div><div class="stat-value">${active}</div></div>
           <div><div class="stat-label">TOTAL</div><div class="stat-value">${region.transformersTotal}</div></div>
         </div>
-        <div class="popup-sub" style="margin-top:8px">Sem coordenada individual da rede eletrica. Ponto exibido no centro operacional da regiao.</div>
+        <div class="stats">
+          <div><div class="stat-label">% FORA</div><div class="stat-value">${pctDown}%</div></div>
+          <div><div class="stat-label">IMPACTO</div><div class="stat-value">${region.transformersDown >= 3 ? 'Alto' : 'Medio'}</div></div>
+          <div><div class="stat-label">PRAZO</div><div class="stat-value">${region.transformersDown >= 3 ? '30 min' : '60 min'}</div></div>
+        </div>
+        <div class="popup-event">
+          <div class="popup-line"><span>01</span>${region.transformersDown >= 3 ? 'Acionar concessionaria e validar bairros sensiveis.' : 'Monitorar recomposicao e confirmar impacto local.'}</div>
+          <div class="popup-line"><span>02</span>Sem coordenada individual da rede eletrica integrada.</div>
+          <div class="popup-line"><span>03</span>Ponto exibido no centro operacional da zona.</div>
+        </div>
       </div>
     `);
     markerLayer.addLayer(marker);
