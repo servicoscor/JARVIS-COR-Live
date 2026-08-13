@@ -305,8 +305,6 @@ function standaloneRegionHtml(region, vm) {
       <main class="ops-main">
         <section class="ops-box ops-reading">
           ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
-          <div class="ops-section-title">Tendencia de risco · 7 dias</div>
-          ${opsRiskTrend(region, vm)}
         </section>
 
         <section class="ops-box">
