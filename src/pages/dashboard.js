@@ -275,6 +275,7 @@ function standaloneRegionHtml(region, vm) {
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
+      <div class="ops-map" id="${regionMapContainerId(region)}"></div>
       <header class="ops-header">
         <div>
           <h1>${region.name}</h1>
