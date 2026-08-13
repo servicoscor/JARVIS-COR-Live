@@ -161,12 +161,6 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion, tog
       return;
     }
 
-    const sizeButton = target.closest?.('[data-card-size-action]');
-    if (sizeButton) {
-      adjustCardSize(sizeButton.dataset.cardRegion, sizeButton.dataset.cardSizeAction);
-      return;
-    }
-
     const dismissButton = target.closest?.('[data-dismiss-alert]');
     if (dismissButton) {
       dismissAlert(dismissButton.dataset.dismissAlert);
@@ -176,11 +170,6 @@ export function renderDashboard(root, vm, navigate, openRegion, closeRegion, tog
     if (target.classList?.contains('region-modal')) {
       closeRegion();
     }
-  };
-
-  root.onpointerdown = (event) => {
-    const resizeHandle = event.target.closest?.('[data-resize-card]');
-    if (resizeHandle) startCardResize(event, resizeHandle.dataset.resizeCard);
   };
 
   if (vm.openRegionId) {
@@ -279,10 +268,8 @@ function buildStandaloneRegionUrl(regionId) {
 
 function regionCard(region, vm) {
   const ring = `conic-gradient(${region.colors.border} ${region.score}%, rgba(255,255,255,.08) 0)`;
-  const size = cardSize(region.id);
-  const sizeStyle = size ? `--card-width:${size.width}px;--card-height:${size.height}px;` : '';
   return `
-    <article class="card" data-region-card="${region.id}" style="--accent:${region.colors.border};${sizeStyle}">
+    <article class="card" style="--accent:${region.colors.border}">
       <div class="card-head">
         <div style="min-width:0">
           <div class="ap">${region.ap}</div>
@@ -316,129 +303,9 @@ function regionCard(region, vm) {
         ${stat('ACID.', region.wazeAccidents || '-')}
         ${stat('JAM', region.wazeMaxJamLevel || '-')}
       </div>
-      <div class="card-size-controls" aria-label="Ajustar tamanho do card">
-        <button type="button" data-card-region="${region.id}" data-card-size-action="narrow" title="Diminuir largura">W-</button>
-        <button type="button" data-card-region="${region.id}" data-card-size-action="wide" title="Aumentar largura">W+</button>
-        <button type="button" data-card-region="${region.id}" data-card-size-action="short" title="Diminuir altura">H-</button>
-        <button type="button" data-card-region="${region.id}" data-card-size-action="tall" title="Aumentar altura">H+</button>
-        <button type="button" data-card-region="${region.id}" data-card-size-action="reset" title="Restaurar tamanho">RST</button>
-      </div>
       <button class="region-open-btn" type="button" data-open-region="${region.id}">ABRIR</button>
-      <button class="card-resize-handle" type="button" data-resize-card="${region.id}" aria-label="Redimensionar card" title="Redimensionar card"></button>
     </article>
   `;
-}
-
-const cardSizeStorageKey = 'jarvis-card-sizes-v1';
-
-function readCardSizes() {
-  try {
-    return JSON.parse(localStorage.getItem(cardSizeStorageKey) || '{}');
-  } catch {
-    return {};
-  }
-}
-
-function writeCardSizes(sizes) {
-  localStorage.setItem(cardSizeStorageKey, JSON.stringify(sizes));
-}
-
-function cardSize(regionId) {
-  const size = readCardSizes()[regionId];
-  if (!size) return null;
-  const width = Number(size.width);
-  const height = Number(size.height);
-  if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
-  return { width, height };
-}
-
-function saveCardSize(regionId, width, height) {
-  const sizes = readCardSizes();
-  sizes[regionId] = {
-    width: Math.round(width),
-    height: Math.round(height),
-  };
-  writeCardSizes(sizes);
-}
-
-function clearCardSize(regionId) {
-  const sizes = readCardSizes();
-  delete sizes[regionId];
-  writeCardSizes(sizes);
-}
-
-function adjustCardSize(regionId, action) {
-  const card = document.querySelector(`[data-region-card="${regionId}"]`);
-  if (!card || !regionId) return;
-
-  if (action === 'reset') {
-    clearCardSize(regionId);
-    card.style.removeProperty('--card-width');
-    card.style.removeProperty('--card-height');
-    return;
-  }
-
-  const rect = card.getBoundingClientRect();
-  const current = cardSize(regionId) || { width: rect.width, height: rect.height };
-  const next = {
-    width: current.width,
-    height: current.height,
-  };
-
-  if (action === 'wide') next.width += 60;
-  if (action === 'narrow') next.width -= 60;
-  if (action === 'tall') next.height += 60;
-  if (action === 'short') next.height -= 60;
-
-  next.width = clampSize(next.width, 250, Math.min(620, Math.max(300, window.innerWidth - 80)));
-  next.height = clampSize(next.height, 340, Math.max(420, window.innerHeight - 190));
-  card.style.setProperty('--card-width', `${next.width}px`);
-  card.style.setProperty('--card-height', `${next.height}px`);
-  saveCardSize(regionId, next.width, next.height);
-}
-
-function startCardResize(event, regionId) {
-  const card = event.target.closest('[data-region-card]');
-  if (!card || !regionId) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-  card.setPointerCapture?.(event.pointerId);
-  card.classList.add('is-resizing');
-
-  const rect = card.getBoundingClientRect();
-  const startX = event.clientX;
-  const startY = event.clientY;
-  const startWidth = rect.width;
-  const startHeight = rect.height;
-  const minWidth = 250;
-  const maxWidth = Math.min(620, Math.max(300, window.innerWidth - 80));
-  const minHeight = 340;
-  const maxHeight = Math.max(420, window.innerHeight - 190);
-
-  const onMove = (moveEvent) => {
-    const width = clampSize(startWidth + moveEvent.clientX - startX, minWidth, maxWidth);
-    const height = clampSize(startHeight + moveEvent.clientY - startY, minHeight, maxHeight);
-    card.style.setProperty('--card-width', `${width}px`);
-    card.style.setProperty('--card-height', `${height}px`);
-  };
-
-  const onUp = () => {
-    const finalRect = card.getBoundingClientRect();
-    saveCardSize(regionId, finalRect.width, finalRect.height);
-    card.classList.remove('is-resizing');
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    window.removeEventListener('pointercancel', onUp);
-  };
-
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp, { once: true });
-  window.addEventListener('pointercancel', onUp, { once: true });
-}
-
-function clampSize(value, min, max) {
-  return Math.max(min, Math.min(max, value));
 }
 
 function regionInlineDetailHtml(region, vm) {
