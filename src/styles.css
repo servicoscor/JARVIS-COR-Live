@@ -492,11 +492,11 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-region-page {
-  width: min(1180px, calc(100vw - 30px));
-  min-height: 205px;
-  margin: 4px 14px;
+  width: min(1178px, calc(100vw - 64px));
+  min-height: 222px;
+  margin: 0 auto;
   display: grid;
-  grid-template-rows: 44px 160px;
+  grid-template-rows: 60px 160px;
   background: #f4f4f4;
   border: 1px solid #8f8f8f;
   color: #0c1623;
@@ -518,10 +518,10 @@ a { color: inherit; text-decoration: none; }
 
 .ops-header {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 7px 30px 8px;
+  padding: 0 29px;
   background: #f7f7f7;
   border-bottom: 1px solid #9c9c9c;
 }
@@ -535,16 +535,16 @@ a { color: inherit; text-decoration: none; }
 .ops-header h1 {
   margin: 0;
   color: #111;
-  font-size: 30px;
-  line-height: .95;
+  font-size: 32px;
+  line-height: 1;
   letter-spacing: 0;
   display: inline-block;
 }
 
 .ops-header p {
-  margin: 0 0 0 14px;
+  margin: 0 0 0 12px;
   color: #4d5968;
-  font-size: 12px;
+  font-size: 11px;
   display: inline-block;
 }
 
@@ -553,6 +553,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 18px;
   text-align: right;
+  padding-top: 4px;
 }
 
 .ops-status-stage {
@@ -646,16 +647,16 @@ a { color: inherit; text-decoration: none; }
 
 .ops-primary {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 15px;
   min-height: 0;
   margin-bottom: 0;
   padding: 0;
 }
 
 .ops-primary-icon {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -676,7 +677,7 @@ a { color: inherit; text-decoration: none; }
 
 .ops-primary-title {
   color: #087345;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   line-height: 1.05;
   letter-spacing: 0;
@@ -692,9 +693,9 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-primary-sub {
-  margin-top: 4px;
+  margin-top: 3px;
   color: #3e4a59;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .ops-primary-lines {
