@@ -304,8 +304,7 @@ function standaloneRegionHtml(region, vm) {
 
       <main class="ops-main">
         <section class="ops-box ops-reading">
-          <div class="ops-section-title">Leitura operacional</div>
-          <p>${standaloneReading(region, occurrences, wazeAlerts, triggeredSirens)}</p>
+          ${opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
           <div class="ops-section-title">Tendencia de risco · 7 dias</div>
           ${opsRiskTrend(region, vm)}
         </section>
@@ -354,6 +353,109 @@ function standaloneReading(region, occurrences, wazeAlerts, triggeredSirens) {
     : 'nenhum alerta Waze 8+ ativo';
 
   return `${region.name} esta em status <strong>${status}</strong>, com transito ${trafficLabels[region.trafficIdx].toLowerCase()} e chuva regional em ${pct(region.rain)}. ${transformerLine}. ${wazeLine}; ${sirenLine} em todos os pontos monitorados. ${occurrences.length ? `${occurrences.length} ocorrencia(s) operacional(is) ativa(s).` : 'Sem ocorrencia operacional ativa nas fontes conectadas.'}`;
+}
+
+function opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision) {
+  const primary = primaryOperationalItem(region, occurrences, wazeAlerts, triggeredSirens);
+  const isNormal = primary.kind === 'normal';
+  return `
+    <div class="ops-primary ${isNormal ? 'normal' : primary.severity === 2 ? 'critical' : 'attention'}">
+      <div class="ops-primary-icon">${isNormal ? '✓' : '!'}</div>
+      <div class="ops-primary-body">
+        <div class="ops-primary-title">${primary.title}</div>
+        <div class="ops-primary-sub">${primary.subtitle}</div>
+        ${primary.lines.length ? `
+          <div class="ops-primary-lines">
+            ${primary.lines.map((line) => `<span>${line}</span>`).join('')}
+          </div>
+        ` : ''}
+        ${!isNormal ? `<div class="ops-primary-action"><strong>Acao:</strong> ${decision.action}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function primaryOperationalItem(region, occurrences, wazeAlerts, triggeredSirens) {
+  const criticalOccurrence = occurrences.find((occurrence) => occurrence.severity === 2);
+  if (criticalOccurrence) {
+    return {
+      kind: 'occurrence',
+      severity: 2,
+      title: criticalOccurrence.title,
+      subtitle: `${criticalOccurrence.source} · ${criticalOccurrence.regionName}`,
+      lines: criticalOccurrence.lines?.slice(0, 3) || [],
+    };
+  }
+
+  if (triggeredSirens.length) {
+    return {
+      kind: 'siren',
+      severity: 2,
+      title: 'Sirene acionada',
+      subtitle: `${triggeredSirens.length} sirene(s) acionada(s) na zona`,
+      lines: triggeredSirens.slice(0, 3).map((siren) => `${siren.name || 'Sirene'} · ${siren.online ? 'online' : 'offline'}`),
+    };
+  }
+
+  if (wazeAlerts.length) {
+    const topAlert = [...wazeAlerts].sort((a, b) => (b.trust || 0) - (a.trust || 0))[0];
+    return {
+      kind: 'waze',
+      severity: topAlert.type === 'ACCIDENT' ? 2 : 1,
+      title: topAlert.type === 'ACCIDENT' ? 'Acidente Waze em atencao' : 'Transito Waze em atencao',
+      subtitle: `${topAlert.street || 'Via sem nome'} · ${topAlert.trust || 0} votos`,
+      lines: [
+        `Tipo: ${topAlert.type}${topAlert.subType ? ` / ${topAlert.subType}` : ''}`,
+        `${wazeAlerts.length} alerta(s) Waze 8+ na zona`,
+        `Transito regional: ${trafficLabels[region.trafficIdx]}`,
+      ],
+    };
+  }
+
+  if (region.transformersDown > 0) {
+    return {
+      kind: 'energy',
+      severity: region.transformersDown >= 3 ? 2 : 1,
+      title: 'Energia em acompanhamento',
+      subtitle: `${region.transformersDown}/${region.transformersTotal} transformadores fora`,
+      lines: [
+        'Dado agregado por zona',
+        'Localizacao individual nao integrada',
+        region.transformersDown >= 3 ? 'Acionar concessionaria' : 'Monitorar recomposicao',
+      ],
+    };
+  }
+
+  const rainH01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
+  const rainH24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
+  if (rainH01 >= 2 || rainH24 >= 25) {
+    return {
+      kind: 'rain',
+      severity: rainH01 >= 8 || rainH24 >= 55 ? 2 : 1,
+      title: 'Chuva em acompanhamento',
+      subtitle: `${rainH01.toFixed(1)} mm em 1h · ${rainH24.toFixed(1)} mm em 24h`,
+      lines: ['Acompanhar pluviometros da zona', `Transito regional: ${trafficLabels[region.trafficIdx]}`],
+    };
+  }
+
+  if (occurrences.length) {
+    const occurrence = occurrences[0];
+    return {
+      kind: 'occurrence',
+      severity: occurrence.severity,
+      title: occurrence.title,
+      subtitle: `${occurrence.source} · ${occurrence.regionName}`,
+      lines: occurrence.lines?.slice(0, 3) || [],
+    };
+  }
+
+  return {
+    kind: 'normal',
+    severity: 0,
+    title: 'TUDO NORMAL',
+    subtitle: 'Nenhum alerta pendente',
+    lines: [],
+  };
 }
 
 function opsRiskTrend(region, vm) {
