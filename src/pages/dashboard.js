@@ -317,8 +317,8 @@ function opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens) {
       title: alert.street || 'Via sem nome',
       meta: `${alert.city || region.name} · ${alert.pubMillis ? timeString(new Date(alert.pubMillis)).slice(0, 8) : 'agora'}`,
       rows: [
-        ['Fonte', `Waze · ${alert.trust || 0}`],
-        ['Confianca', (alert.trust || 0) >= 20 ? 'Alta' : (alert.trust || 0) >= 8 ? 'Media' : 'Baixa'],
+        ['Fonte', 'Waze'],
+        ['Confianca', `${(alert.trust || 0) >= 20 ? 'Alta' : (alert.trust || 0) >= 8 ? 'Media' : 'Baixa'} · ${alert.trust || 0} confirmacoes`],
       ],
       severity: alert.type === 'ACCIDENT' ? 2 : 1,
     })),
