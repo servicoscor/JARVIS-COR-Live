@@ -387,7 +387,9 @@ function transformerPointMarker(point) {
       </div>
       <div class="popup-event">
         <div class="popup-line"><span>01</span>Validar impacto local com a concessionaria.</div>
-        <div class="popup-line"><span>02</span>${point.description || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`}</div>
+        <div class="popup-line"><span>02</span>${point.endereco || point.location || 'Endereco nao informado'}</div>
+        <div class="popup-line"><span>03</span>${point.referencia || point.description || 'Referencia nao informada'}</div>
+        <div class="popup-line"><span>04</span>${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}</div>
       </div>
     </div>
   `);

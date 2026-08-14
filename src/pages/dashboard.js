@@ -356,12 +356,10 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     })),
     ...transformerPoints.slice(0, 4).map((item) => ({
       type: 'FALTA DE ENERGIA',
+      detail: 'transformer',
       title: transformerLocationTitle(item),
       meta: `${item.bairro || region.name} - Light KML`,
-      rows: [
-        ['Transformador', item.codigo || item.name || 'Nao informado'],
-        ['Local exato', transformerExactLocation(item)],
-      ],
+      rows: transformerDetailRows(item),
       severity: transformerPoints.length >= 3 ? 2 : 1,
     })),
   ];
@@ -369,11 +367,14 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   if (!transformerPoints.length && region.transformersDown > 0) {
     cards.push({
       type: 'FALTA DE ENERGIA',
+      detail: 'transformer',
       title: region.name,
       meta: 'Dado agregado por zona',
       rows: [
         ['Transf.', `${region.transformersDown} fora`],
         ['Total', `${region.transformersTotal} cadastrados`],
+        ['Impacto', region.transformersDown >= 3 ? 'Comunidades e equipamentos urbanos' : 'Monitoramento regional'],
+        ['Acao', region.transformersDown >= 3 ? 'Acionar concessionaria' : 'Validar recomposicao'],
       ],
       severity: region.transformersDown >= 3 ? 2 : 1,
     });
@@ -403,18 +404,21 @@ function transformerLocationTitle(item) {
   return item.endereco || item.location || item.referencia || item.name || 'Transformador fora';
 }
 
-function transformerExactLocation(item) {
-  const parts = [
-    item.referencia,
-    item.circuito ? `Circuito ${item.circuito}` : '',
-    `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`,
-  ].filter(Boolean);
-  return parts.join(' - ');
+function transformerDetailRows(item) {
+  const rows = [
+    ['Codigo', item.codigo || item.name || 'Nao informado'],
+    ['Endereco', item.endereco || item.location || 'Nao informado'],
+    ['Bairro', item.bairro || item.regionName || 'Nao informado'],
+    ['Referencia', item.referencia || 'Nao informado'],
+    ['Circuito', item.circuito || 'Nao informado'],
+    ['Coordenada', `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`],
+  ];
+  return rows.filter(([, value]) => value && value !== 'Nao informado').slice(0, 6);
 }
 
 function opsAlertCard(card) {
   return `
-    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'}">
+    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'} ${card.detail ? `is-${card.detail}` : ''}">
       <div class="ops-alert-head"><span>!</span><strong>${card.type}</strong></div>
       <div class="ops-alert-body">
         <h2>${card.title}</h2>

@@ -828,6 +828,35 @@ a { color: inherit; text-decoration: none; }
   text-align: right;
 }
 
+.ops-alert-card.is-transformer .ops-alert-body {
+  padding-bottom: 8px;
+}
+
+.ops-alert-card.is-transformer .ops-alert-body h2 {
+  font-size: 13px;
+}
+
+.ops-alert-card.is-transformer .ops-alert-body p {
+  margin-bottom: 5px;
+}
+
+.ops-alert-card.is-transformer .ops-alert-rows div {
+  gap: 10px;
+  padding: 3px 0;
+}
+
+.ops-alert-card.is-transformer .ops-alert-rows span {
+  flex: 0 0 82px;
+  font-size: 10px;
+}
+
+.ops-alert-card.is-transformer .ops-alert-rows strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 11.5px;
+  line-height: 1.15;
+}
+
 .ops-trend {
   height: 86px;
   display: grid;

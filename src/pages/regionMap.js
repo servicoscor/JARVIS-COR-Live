@@ -129,7 +129,9 @@ function drawRegionMarkers(region, vm) {
           </div>
           <div class="popup-event">
             <div class="popup-line"><span>01</span>Validar impacto local com a concessionaria.</div>
-            <div class="popup-line"><span>02</span>${item.description || `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`}</div>
+            <div class="popup-line"><span>02</span>${item.endereco || item.location || 'Endereco nao informado'}</div>
+            <div class="popup-line"><span>03</span>${item.referencia || item.description || 'Referencia nao informada'}</div>
+            <div class="popup-line"><span>04</span>${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</div>
           </div>
         </div>
       `);
