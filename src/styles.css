@@ -494,10 +494,10 @@ a { color: inherit; text-decoration: none; }
 .ops-region-page {
   width: calc(100vw - 8px);
   height: calc(100vh - 8px);
-  min-height: 560px;
+  min-height: 0;
   margin: 4px auto;
   display: grid;
-  grid-template-rows: minmax(240px, .68fr) 60px 240px;
+  grid-template-rows: minmax(210px, .62fr) 54px minmax(170px, .38fr);
   background: #f4f4f4;
   border: 1px solid #8f8f8f;
   color: #0c1623;
@@ -536,7 +536,7 @@ a { color: inherit; text-decoration: none; }
 .ops-header h1 {
   margin: 0;
   color: #111;
-  font-size: 32px;
+  font-size: 30px;
   line-height: 1;
   letter-spacing: 0;
   display: inline-block;
@@ -566,7 +566,7 @@ a { color: inherit; text-decoration: none; }
 .ops-status-stage.has-alerts {
   place-items: stretch;
   align-content: start;
-  padding: 22px 30px;
+  padding: 16px 28px;
   overflow: hidden;
 }
 
@@ -750,7 +750,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-head {
-  height: 32px;
+  height: 30px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -779,20 +779,20 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-body {
-  padding: 10px 14px 12px;
+  padding: 8px 14px 10px;
 }
 
 .ops-alert-body h2 {
   margin: 0;
   color: #111;
-  font-size: 15.5px;
+  font-size: 14.5px;
   line-height: 1.15;
 }
 
 .ops-alert-body p {
   margin: 3px 0 8px;
   color: #5f6772;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .ops-alert-rows {
@@ -803,7 +803,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   justify-content: space-between;
   gap: 14px;
-  padding: 6px 0;
+  padding: 5px 0;
   border-bottom: 1px solid #bdbdbd;
 }
 
@@ -1922,7 +1922,8 @@ a { color: inherit; text-decoration: none; }
 .map-marker.critical { background: #e6534f; color: #170707; }
 
 @media (max-width: 850px) {
-  body { overflow: auto; }
+  body:has(.standalone-light) { overflow: hidden; }
+  body:not(:has(.standalone-light)) { overflow: auto; }
   .shell { min-height: 100vh; height: auto; overflow: visible; }
   .topbar { height: auto; flex-wrap: wrap; }
   .brand { min-width: 0; }
