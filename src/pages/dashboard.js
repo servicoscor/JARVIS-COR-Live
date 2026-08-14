@@ -398,6 +398,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 10);
   if (!visible.length) return '';
   const critical = visible.filter((card) => card.severity === 2).length;
+  const bars = Array.from({ length: 44 }, (_, index) => `<span style="--bar:${0.22 + ((index * 17) % 70) / 100};--delay:${-(index % 11) * 0.13}s"></span>`).join('');
   return `
     <div class="ops-alert-radar count-${visible.length}" style="--alert-count:${visible.length}">
       <div class="ops-radar-grid" aria-hidden="true"></div>
@@ -416,9 +417,10 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
         ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
       </div>
       <div class="ops-radar-footer">
-        <div><span></span><strong>Organismo ativo</strong></div>
+        <div class="ops-radar-organism"><i></i><strong>Organismo ativo</strong><div class="ops-radar-bars">${bars}</div></div>
         <div><b>Sinais</b><strong>${visible.length + critical}</strong></div>
         <div><b>Criticos</b><strong>${critical}</strong></div>
+        <div><b>Aglomeracoes</b><strong>${Math.max(1, Math.ceil(visible.length / 4))}</strong></div>
         <div><b>Varredura</b><strong>11 s</strong></div>
       </div>
     </div>
