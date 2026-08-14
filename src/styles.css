@@ -1308,10 +1308,12 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-stage.organism-active .ops-radar-signal {
   animation-name: none;
+  text-shadow: 0 2px 4px #02050a, 0 0 8px #02050a;
 }
 
 .ops-radar-stage.organism-active .ops-radar-signal::after {
-  opacity: .34;
+  width: 18px;
+  opacity: .28;
 }
 
 .ops-radar-signal.pos-1 { grid-column: 1; grid-row: 1; }

@@ -47,7 +47,7 @@ export function startRadarOrganism(root) {
     x: radarRect.left - stageRect.left + radarRect.width / 2,
     y: radarRect.top - stageRect.top + radarRect.height / 2,
   };
-  const radarRadius = radarRect.width / 2 + 7;
+  const radarRadius = Math.max(72, radarRect.width * .2);
   const radarBody = Bodies.circle(radarCenter.x, radarCenter.y, radarRadius, {
     isStatic: true,
     restitution: 1,
@@ -67,13 +67,16 @@ export function startRadarOrganism(root) {
       chamfer: { radius: Math.min(12, rect.height / 2) },
     });
     Body.setInertia(body, Infinity);
-    const spawn = signalSpawnPosition(index, elements.length, stageRect, radarCenter, radarRadius, rect);
+    const spawn = signalSpawnPosition(index, stageRect, radarCenter, radarRadius, rect);
     Body.setPosition(body, spawn);
-    const towardRadar = spawn.x < radarCenter.x ? 1 : -1;
-    const speed = .42 + (index % 4) * .09;
+    const deltaX = radarCenter.x - spawn.x;
+    const deltaY = radarCenter.y - spawn.y;
+    const distance = Math.max(1, Math.hypot(deltaX, deltaY));
+    const speed = .54 + (index % 4) * .1;
+    const tangent = index % 2 ? .2 : -.2;
     Body.setVelocity(body, {
-      x: towardRadar * speed,
-      y: (index % 2 ? -1 : 1) * (.28 + (index % 3) * .08),
+      x: (deltaX / distance) * speed - (deltaY / distance) * tangent,
+      y: (deltaY / distance) * speed + (deltaX / distance) * tangent,
     });
     return { body, element, origin };
   });
@@ -145,32 +148,28 @@ export function startRadarOrganism(root) {
   resizeObserver.observe(stage);
 }
 
-function signalSpawnPosition(index, count, stageRect, radarCenter, radarRadius, rect) {
-  const left = index % 2 === 0;
-  const slot = Math.floor(index / 2);
-  const sideCount = Math.ceil(count / 2);
-  const leftY = [.14, .43, .72, .87, .28];
-  const rightY = [.23, .56, .82, .39, .69];
-  const leftX = [.18, .1, .24, .15, .27];
-  const rightX = [.82, .91, .76, .86, .73];
+function signalSpawnPosition(index, stageRect, radarCenter, radarRadius, rect) {
+  const spots = [
+    [.12, .16], [.82, .14], [.27, .34], [.73, .32], [.11, .62],
+    [.87, .59], [.29, .82], [.72, .84], [.48, .12], [.52, .88],
+  ];
+  const [xRatio, yRatio] = spots[index % spots.length];
   const halfWidth = rect.width / 2 + 7;
   const halfHeight = rect.height / 2 + 7;
   const sidePadding = 12;
   const wallMinX = halfWidth + sidePadding;
   const wallMaxX = stageRect.width - halfWidth - sidePadding;
-  const radarGap = 11;
-  const sideLimit = left
-    ? radarCenter.x - radarRadius - halfWidth - radarGap
-    : radarCenter.x + radarRadius + halfWidth + radarGap;
-  const preferredX = stageRect.width * (left ? leftX[slot % leftX.length] : rightX[slot % rightX.length]);
-  const x = left
-    ? clampValue(preferredX, wallMinX, Math.max(wallMinX, sideLimit))
-    : clampValue(preferredX, Math.min(wallMaxX, sideLimit), wallMaxX);
-  const ratios = left ? leftY : rightY;
-  const fallbackRatio = (slot + 1) / (sideCount + 1);
-  const preferredY = stageRect.height * (ratios[slot] ?? fallbackRatio);
-  const y = clampValue(preferredY, halfHeight + sidePadding, stageRect.height - halfHeight - sidePadding);
-  return { x, y };
+  const x = clampValue(stageRect.width * xRatio, wallMinX, wallMaxX);
+  const y = clampValue(stageRect.height * yRatio, halfHeight + sidePadding, stageRect.height - halfHeight - sidePadding);
+  const deltaX = x - radarCenter.x;
+  const deltaY = y - radarCenter.y;
+  const distance = Math.max(1, Math.hypot(deltaX, deltaY));
+  const clearance = radarRadius + Math.hypot(halfWidth, halfHeight) + 10;
+  if (distance >= clearance) return { x, y };
+  return {
+    x: clampValue(radarCenter.x + (deltaX / distance) * clearance, wallMinX, wallMaxX),
+    y: clampValue(radarCenter.y + (deltaY / distance) * clearance, halfHeight + sidePadding, stageRect.height - halfHeight - sidePadding),
+  };
 }
 
 function clampValue(value, min, max) {
