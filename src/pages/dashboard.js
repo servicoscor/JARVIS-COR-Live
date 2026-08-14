@@ -464,7 +464,7 @@ function opsRadarBlip(signal, index) {
     [40, 80], [24, 63], [23, 39], [32, 25], [50, 84],
   ];
   const [x, y] = spots[index % spots.length];
-  return `<span class="${signal.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%">${opsRadarBlipCode(signal.type)}</span>`;
+  return `<span class="${signal.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%;--blip-delay:${index * -0.43}s">${opsRadarBlipCode(signal.type)}</span>`;
 }
 
 function opsRadarBlipCode(type) {

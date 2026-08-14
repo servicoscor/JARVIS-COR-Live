@@ -1188,6 +1188,8 @@ a { color: inherit; text-decoration: none; }
   font: 900 7px "IBM Plex Mono", monospace;
   letter-spacing: 0;
   box-shadow: 0 0 0 3px rgba(239,43,24,.08), 0 0 8px rgba(239,43,24,.48);
+  animation: ops-blip-float 4.2s ease-in-out infinite;
+  animation-delay: var(--blip-delay, 0s);
 }
 
 .ops-radar-blips span.critical {
@@ -1259,6 +1261,23 @@ a { color: inherit; text-decoration: none; }
   50% { opacity: .68; }
 }
 
+@keyframes ops-signal-drift-left {
+  0%, 100% { transform: translate(0, 0); }
+  32% { transform: translate(6px, -3px); }
+  68% { transform: translate(-3px, 3px); }
+}
+
+@keyframes ops-signal-drift-right {
+  0%, 100% { transform: translate(0, 0); }
+  36% { transform: translate(-6px, 3px); }
+  72% { transform: translate(3px, -2px); }
+}
+
+@keyframes ops-blip-float {
+  0%, 100% { transform: translate(-50%, -50%) scale(.92); }
+  50% { transform: translate(calc(-50% + 2px), calc(-50% - 3px)) scale(1.08); }
+}
+
 .ops-radar-signals {
   position: absolute;
   inset: 12px clamp(16px, 1.5vw, 28px);
@@ -1279,6 +1298,10 @@ a { color: inherit; text-decoration: none; }
   gap: 11px;
   align-self: center;
   color: #f4f7fb;
+  animation-duration: var(--signal-speed, 7.4s);
+  animation-delay: var(--signal-delay, 0s);
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
 }
 
 .ops-radar-signal.pos-1 { grid-column: 1; grid-row: 1; }
@@ -1292,6 +1315,17 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-signal.pos-9 { grid-column: 1; grid-row: 5; }
 .ops-radar-signal.pos-10 { grid-column: 3; grid-row: 5; }
 
+.ops-radar-signal.pos-1 { --signal-speed: 7.1s; --signal-delay: -1.2s; }
+.ops-radar-signal.pos-2 { --signal-speed: 8.3s; --signal-delay: -3.4s; }
+.ops-radar-signal.pos-3 { --signal-speed: 7.8s; --signal-delay: -5.1s; }
+.ops-radar-signal.pos-4 { --signal-speed: 6.9s; --signal-delay: -2.2s; }
+.ops-radar-signal.pos-5 { --signal-speed: 8.6s; --signal-delay: -6.3s; }
+.ops-radar-signal.pos-6 { --signal-speed: 7.3s; --signal-delay: -4.6s; }
+.ops-radar-signal.pos-7 { --signal-speed: 9.1s; --signal-delay: -2.8s; }
+.ops-radar-signal.pos-8 { --signal-speed: 8s; --signal-delay: -7.1s; }
+.ops-radar-signal.pos-9 { --signal-speed: 7.6s; --signal-delay: -5.5s; }
+.ops-radar-signal.pos-10 { --signal-speed: 8.8s; --signal-delay: -3.7s; }
+
 .ops-radar-signal.pos-1,
 .ops-radar-signal.pos-3,
 .ops-radar-signal.pos-5,
@@ -1300,6 +1334,7 @@ a { color: inherit; text-decoration: none; }
   justify-self: end;
   flex-direction: row-reverse;
   text-align: right;
+  animation-name: ops-signal-drift-left;
 }
 
 .ops-radar-signal.pos-2,
@@ -1308,6 +1343,7 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-signal.pos-8,
 .ops-radar-signal.pos-10 {
   justify-self: start;
+  animation-name: ops-signal-drift-right;
 }
 
 .ops-radar-signal > div {
