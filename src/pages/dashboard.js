@@ -271,7 +271,7 @@ function standaloneRegionHtml(region, vm) {
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
   const wazeJams = (vm.wazeData.jams || []).filter((jam) => jam.regionId === region.id);
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
-  const radarPanel = opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
+  const radarPanel = opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -309,9 +309,9 @@ function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
   return items.length ? `<div class="ops-kpis" style="--ops-kpi-count:${items.length}">${items.join('')}</div>` : '';
 }
 
-function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens) {
+function opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens) {
   const transformerPoints = (region.transformerPoints || []).filter((item) => item.status !== 'online');
-  const cards = [
+  const signals = [
     ...wazeAlerts.slice(0, 4).map((alert) => ({
       type: alert.type === 'ACCIDENT' ? 'ACIDENTE WAZE' : 'TRANSITO WAZE',
       title: alert.street || 'Via sem nome',
@@ -343,7 +343,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
       severity: occurrence.severity,
     })),
     ...triggeredSirens.slice(0, 3).map((siren) => ({
-      type: 'SIRENE ACIONADA',
+      type: 'SIRENE',
       title: siren.name || 'Sirene sem nome',
       meta: `${region.name} · agora`,
       rows: [
@@ -363,7 +363,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   ];
 
   if (!transformerPoints.length && region.liveTransformers && region.transformersDown > 0) {
-    cards.push({
+    signals.push({
       type: 'FALTA DE ENERGIA',
       detail: 'transformer',
       title: region.name,
@@ -381,7 +381,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   const rainH01 = Number.isFinite(region.rainMmH01) ? region.rainMmH01 : 0;
   const rainH24 = Number.isFinite(region.rainMmH24) ? region.rainMmH24 : 0;
   if (rainH01 >= 2 || rainH24 >= 25) {
-    cards.push({
+    signals.push({
       type: rainH01 >= 8 || rainH24 >= 55 ? 'ALAGAMENTO' : 'CHUVA',
       title: region.name,
       meta: 'Alerta Rio · agora',
@@ -393,8 +393,8 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     });
   }
 
-  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 10);
-  const metrics = opsRadarMetrics(region, cards, visible, {
+  const visible = signals.sort((a, b) => b.severity - a.severity).slice(0, 10);
+  const metrics = opsRadarMetrics(region, signals, {
     wazeAlerts,
     wazeJams,
     triggeredSirens,
@@ -427,24 +427,24 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
             <em>${metrics.status}</em>
           </div>
         </div>
-        <div class="ops-radar-cards">
-          ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
+        <div class="ops-radar-signals">
+          ${visible.map((signal, index) => opsRadarSignal(signal, index)).join('')}
         </div>
       </div>
     </div>
   `;
 }
 
-function opsRadarMetrics(region, cards, visible, sources) {
-  const critical = cards.filter((card) => card.severity === 2).length;
-  const signals = sources.wazeAlerts.length
+function opsRadarMetrics(region, signals, sources) {
+  const critical = signals.filter((signal) => signal.severity === 2).length;
+  const sourceSignals = sources.wazeAlerts.length
     + sources.wazeJams.length
     + sources.triggeredSirens.length
     + sources.transformerPoints.length
     + (sources.rainActive ? 1 : 0)
     + Math.max(region.liveTransformers && region.transformersDown && !sources.transformerPoints.length ? 1 : 0, 0);
-  const clusters = new Set(cards.map((card) => card.type.replace(/\s+WAZE$/, '').replace(/\s+.*/, ''))).size;
-  const active = cards.length;
+  const clusters = new Set(signals.map((signal) => signal.type.replace(/\s+WAZE$/, '').replace(/\s+.*/, ''))).size;
+  const active = signals.length;
   const state = critical ? 'critical' : active ? 'attention' : 'normal';
   return {
     active,
@@ -454,17 +454,17 @@ function opsRadarMetrics(region, cards, visible, sources) {
     state,
     label: active ? 'Ocorrencias ativas' : 'Monitoramento ativo',
     status: active ? 'Varrendo' : 'Normal',
-    scanSeconds: Math.max(6, Math.min(18, 6 + Math.ceil(signals / 2))),
+    scanSeconds: Math.max(6, Math.min(18, 6 + Math.ceil(sourceSignals / 2))),
   };
 }
 
-function opsRadarBlip(card, index) {
+function opsRadarBlip(signal, index) {
   const spots = [
     [50, 17], [68, 25], [77, 39], [76, 63], [60, 80],
     [40, 80], [24, 63], [23, 39], [32, 25], [50, 84],
   ];
   const [x, y] = spots[index % spots.length];
-  return `<span class="${card.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%">${opsRadarBlipCode(card.type)}</span>`;
+  return `<span class="${signal.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%">${opsRadarBlipCode(signal.type)}</span>`;
 }
 
 function opsRadarBlipCode(type) {
@@ -492,19 +492,46 @@ function transformerDetailRows(item) {
   return rows.filter(([, value]) => value && value !== 'Nao informado').slice(0, 6);
 }
 
-function opsAlertCard(card, index = 0) {
+function opsRadarSignal(signal, index = 0) {
+  const state = opsSignalState(signal.type);
+  const context = opsSignalContext(signal);
   return `
-    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'} ${card.detail ? `is-${card.detail}` : ''} pos-${index + 1}">
-      <div class="ops-alert-head"><span>!</span><strong>${card.type}</strong></div>
-      <div class="ops-alert-body">
-        <h2>${card.title}</h2>
-        <p>${card.meta}</p>
-        <div class="ops-alert-rows">
-          ${card.rows.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join('')}
-        </div>
+    <div class="ops-radar-signal ${signal.severity === 2 ? 'critical' : 'attention'} pos-${index + 1}">
+      <i aria-hidden="true"></i>
+      <div>
+        <strong>${signal.type}</strong>
+        <p><b>${state}</b><span> - ${context}</span></p>
       </div>
-    </article>
+    </div>
   `;
+}
+
+function opsSignalState(type) {
+  if (/ACIDENTE/.test(type)) return 'CONFIRMADO';
+  if (/CONGESTIONAMENTO|TRANSITO/.test(type)) return 'ATIVO';
+  if (/SIRENE/.test(type)) return 'ACIONADA';
+  if (/ENERGIA/.test(type)) return 'OFFLINE';
+  if (/ALAGAMENTO/.test(type)) return 'RISCO';
+  if (/CHUVA/.test(type)) return 'ATIVA';
+  if (/CALOR/.test(type)) return 'ATIVO';
+  return 'ATIVA';
+}
+
+function opsSignalContext(signal) {
+  const rowValue = (labelPattern) => signal.rows?.find(([label]) => labelPattern.test(label))?.[1];
+  if (/CONGESTIONAMENTO/.test(signal.type)) {
+    const delay = rowValue(/Atraso/i);
+    return delay ? `${signal.title} - ${delay}` : signal.title;
+  }
+  if (/ALAGAMENTO|CHUVA/.test(signal.type)) {
+    const rain = rowValue(/1 hora/i);
+    return rain ? `${signal.title} - ${rain}` : signal.title;
+  }
+  if (/ENERGIA/.test(signal.type)) {
+    const amount = rowValue(/Transf\.|Status/i);
+    return amount ? `${signal.title} - ${amount}` : signal.title;
+  }
+  return signal.title;
 }
 
 function occurrenceTitle(type) {

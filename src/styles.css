@@ -1249,7 +1249,17 @@ a { color: inherit; text-decoration: none; }
     radial-gradient(circle at 50% 50%, #05080e 0 32%, #09101a 33% 58%, #03050a 59% 100%);
 }
 
-.ops-radar-cards {
+@keyframes ops-signal-breathe {
+  0%, 100% { opacity: .62; box-shadow: 0 0 0 0 rgba(239,43,24,.2), 0 0 7px rgba(239,43,24,.52); }
+  50% { opacity: 1; box-shadow: 0 0 0 6px rgba(239,43,24,0), 0 0 14px rgba(239,43,24,.9); }
+}
+
+@keyframes ops-signal-line {
+  0%, 100% { opacity: .18; }
+  50% { opacity: .68; }
+}
+
+.ops-radar-signals {
   position: absolute;
   inset: 12px clamp(16px, 1.5vw, 28px);
   display: grid;
@@ -1260,92 +1270,131 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 
-.ops-alert-radar .ops-alert-card {
+.ops-radar-signal {
   position: relative;
-  width: 100%;
-  height: 100%;
-  max-height: 138px;
+  width: min(100%, 310px);
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
   align-self: center;
-  background: rgba(9,13,22,.72);
-  border-color: rgba(105,124,150,.42);
-  box-shadow: 0 18px 40px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.02);
-  backdrop-filter: blur(1px);
-  animation: none;
-  pointer-events: auto;
+  color: #f4f7fb;
 }
 
-.ops-alert-radar .ops-alert-card.pos-1 { grid-column: 1; grid-row: 1; }
-.ops-alert-radar .ops-alert-card.pos-2 { grid-column: 3; grid-row: 1; }
-.ops-alert-radar .ops-alert-card.pos-3 { grid-column: 1; grid-row: 2; }
-.ops-alert-radar .ops-alert-card.pos-4 { grid-column: 3; grid-row: 2; }
-.ops-alert-radar .ops-alert-card.pos-5 { grid-column: 1; grid-row: 3; }
-.ops-alert-radar .ops-alert-card.pos-6 { grid-column: 3; grid-row: 3; }
-.ops-alert-radar .ops-alert-card.pos-7 { grid-column: 1; grid-row: 4; }
-.ops-alert-radar .ops-alert-card.pos-8 { grid-column: 3; grid-row: 4; }
-.ops-alert-radar .ops-alert-card.pos-9 { grid-column: 1; grid-row: 5; }
-.ops-alert-radar .ops-alert-card.pos-10 { grid-column: 3; grid-row: 5; }
+.ops-radar-signal.pos-1 { grid-column: 1; grid-row: 1; }
+.ops-radar-signal.pos-2 { grid-column: 3; grid-row: 1; }
+.ops-radar-signal.pos-3 { grid-column: 1; grid-row: 2; }
+.ops-radar-signal.pos-4 { grid-column: 3; grid-row: 2; }
+.ops-radar-signal.pos-5 { grid-column: 1; grid-row: 3; }
+.ops-radar-signal.pos-6 { grid-column: 3; grid-row: 3; }
+.ops-radar-signal.pos-7 { grid-column: 1; grid-row: 4; }
+.ops-radar-signal.pos-8 { grid-column: 3; grid-row: 4; }
+.ops-radar-signal.pos-9 { grid-column: 1; grid-row: 5; }
+.ops-radar-signal.pos-10 { grid-column: 3; grid-row: 5; }
 
-.ops-alert-radar .ops-alert-head {
-  height: 27px;
-  background: linear-gradient(90deg, #f12b18, #9d1e18);
-  box-shadow: 0 0 18px rgba(239,43,24,.48);
+.ops-radar-signal.pos-1,
+.ops-radar-signal.pos-3,
+.ops-radar-signal.pos-5,
+.ops-radar-signal.pos-7,
+.ops-radar-signal.pos-9 {
+  justify-self: end;
+  flex-direction: row-reverse;
+  text-align: right;
 }
 
-.ops-alert-radar .ops-alert-card.attention .ops-alert-head {
-  background: linear-gradient(90deg, #d79200, #7f320e);
+.ops-radar-signal.pos-2,
+.ops-radar-signal.pos-4,
+.ops-radar-signal.pos-6,
+.ops-radar-signal.pos-8,
+.ops-radar-signal.pos-10 {
+  justify-self: start;
 }
 
-.ops-alert-radar .ops-alert-body h2 {
-  -webkit-line-clamp: 1;
+.ops-radar-signal > div {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.ops-alert-radar .ops-alert-rows div:nth-child(n+3) {
-  display: none;
+.ops-radar-signal > i {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: #ef2b18;
+  animation: ops-signal-breathe 2.6s ease-in-out infinite;
 }
 
-.ops-alert-radar.count-7 .ops-alert-card,
-.ops-alert-radar.count-8 .ops-alert-card,
-.ops-alert-radar.count-9 .ops-alert-card,
-.ops-alert-radar.count-10 .ops-alert-card {
-  max-height: none;
+.ops-radar-signal.attention > i {
+  background: #d79200;
+  animation-delay: -.9s;
 }
 
-.ops-alert-radar.count-7 .ops-alert-head,
-.ops-alert-radar.count-8 .ops-alert-head,
-.ops-alert-radar.count-9 .ops-alert-head,
-.ops-alert-radar.count-10 .ops-alert-head {
-  height: 24px;
+.ops-radar-signal::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: clamp(20px, 3.2vw, 54px);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(239,43,24,.68), rgba(239,43,24,0));
+  animation: ops-signal-line 2.6s ease-in-out infinite;
 }
 
-.ops-alert-radar.count-7 .ops-alert-head strong,
-.ops-alert-radar.count-8 .ops-alert-head strong,
-.ops-alert-radar.count-9 .ops-alert-head strong,
-.ops-alert-radar.count-10 .ops-alert-head strong {
-  font-size: 11px;
+.ops-radar-signal.pos-1::after,
+.ops-radar-signal.pos-3::after,
+.ops-radar-signal.pos-5::after,
+.ops-radar-signal.pos-7::after,
+.ops-radar-signal.pos-9::after {
+  left: calc(100% + 7px);
 }
 
-.ops-alert-radar.count-7 .ops-alert-body,
-.ops-alert-radar.count-8 .ops-alert-body,
-.ops-alert-radar.count-9 .ops-alert-body,
-.ops-alert-radar.count-10 .ops-alert-body {
-  padding: 6px 10px;
+.ops-radar-signal.pos-2::after,
+.ops-radar-signal.pos-4::after,
+.ops-radar-signal.pos-6::after,
+.ops-radar-signal.pos-8::after,
+.ops-radar-signal.pos-10::after {
+  right: calc(100% + 7px);
+  transform: rotate(180deg);
 }
 
-.ops-alert-radar.count-9 .ops-alert-body p,
-.ops-alert-radar.count-10 .ops-alert-body p {
-  display: none;
+.ops-radar-signal strong {
+  display: block;
+  overflow: hidden;
+  color: #dce7f5;
+  font: 800 10px "IBM Plex Mono", monospace;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.ops-alert-radar.count-9 .ops-alert-rows div:nth-child(n+2),
-.ops-alert-radar.count-10 .ops-alert-rows div:nth-child(n+2) {
-  display: none;
+.ops-radar-signal p {
+  display: flex;
+  gap: 5px;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: #8192a9;
+  font: 700 12px Inter, system-ui, sans-serif;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.ops-alert-radar.count-7 .ops-alert-body h2,
-.ops-alert-radar.count-8 .ops-alert-body h2,
-.ops-alert-radar.count-9 .ops-alert-body h2,
-.ops-alert-radar.count-10 .ops-alert-body h2 {
-  font-size: 12px;
+.ops-radar-signal p b {
+  flex: 0 0 auto;
+  color: #ff5f55;
+  font: 900 10px "IBM Plex Mono", monospace;
+  letter-spacing: 0;
+}
+
+.ops-radar-signal.attention p b {
+  color: #f0b52f;
+}
+
+.ops-radar-signal p span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ops-alert-cards.is-compact {
@@ -2572,15 +2621,21 @@ a { color: inherit; text-decoration: none; }
   .ops-radar-center {
     width: clamp(260px, 39vw, 330px);
   }
-  .ops-radar-cards {
+  .ops-radar-signals {
     inset: 10px 12px;
     grid-template-columns: minmax(150px, 1fr) clamp(260px, 39vw, 330px) minmax(150px, 1fr);
     column-gap: 10px;
     row-gap: 7px;
   }
-  .ops-alert-radar .ops-alert-card {
+  .ops-radar-signal {
     width: 100%;
-    max-height: none;
+    gap: 7px;
+  }
+  .ops-radar-signal strong {
+    font-size: 9px;
+  }
+  .ops-radar-signal p {
+    font-size: 10px;
   }
   .ops-alert-head {
     height: 24px;
