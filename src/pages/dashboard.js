@@ -404,20 +404,26 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   const bars = Array.from({ length: 44 }, (_, index) => `<span style="--bar:${0.22 + ((index * 17) % 70) / 100};--delay:${-(index % 11) * 0.13}s"></span>`).join('');
   return `
     <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length}">
-      <div class="ops-radar-grid" aria-hidden="true"></div>
-      <div class="ops-radar-center" aria-hidden="true">
-        <div class="ops-radar-glow"></div>
-        <div class="ops-radar-dial">
-          <span></span><span></span><span></span><span></span>
+      <div class="ops-radar-stage">
+        <div class="ops-radar-grid" aria-hidden="true"></div>
+        <div class="ops-radar-center" aria-hidden="true">
+          <div class="ops-radar-glow"></div>
+          <div class="ops-radar-dial">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="ops-radar-reticle">
+            <i></i><i></i><i></i><i></i><i></i>
+            <b class="m-top">F/2.8</b><b class="m-left">28</b><b class="m-right">70</b><b class="m-bottom">∞</b>
+          </div>
+          <div class="ops-radar-core">
+            <span>${metrics.label}</span>
+            <strong>${metrics.active}</strong>
+            <em>${metrics.status}</em>
+          </div>
         </div>
-        <div class="ops-radar-core">
-          <span>${metrics.label}</span>
-          <strong>${metrics.active}</strong>
-          <em>${metrics.status}</em>
+        <div class="ops-radar-cards">
+          ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
         </div>
-      </div>
-      <div class="ops-radar-cards">
-        ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
       </div>
       <div class="ops-radar-footer">
         <div class="ops-radar-organism"><i></i><strong>${metrics.footerStatus}</strong><div class="ops-radar-bars">${bars}</div></div>
