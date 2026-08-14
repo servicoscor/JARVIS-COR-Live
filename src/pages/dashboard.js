@@ -1,6 +1,7 @@
 import { pct, timeString } from '../lib/format.js';
 import { regionBairros } from '../data/bairros.js';
 import { streetMap } from '../data/regions.js';
+import { destroyRadarOrganism, startRadarOrganism } from '../lib/radarOrganism.js';
 import { destroyRegionDetailMap, regionMapContainerId, renderRegionDetailMap } from './regionMap.js';
 
 const trafficLabels = ['Livre', 'Moderado', 'Intenso'];
@@ -17,6 +18,7 @@ const regionPopulationEstimate = {
 };
 
 export function renderDashboard(root, vm, navigate, openRegion, closeRegion, toggleAlerts, dismissAlert) {
+  destroyRadarOrganism();
   window.__jarvisOpenRegion = openRegion;
   window.__jarvisCloseRegion = closeRegion;
   window.__jarvisToggleAlerts = toggleAlerts;
@@ -260,6 +262,9 @@ function renderStandaloneRegion(root, vm) {
   };
 
   renderRegionDetailMap(region, vm);
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => startRadarOrganism(root));
+  });
 }
 
 function buildStandaloneRegionUrl(regionId) {

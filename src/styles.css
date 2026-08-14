@@ -1302,6 +1302,15 @@ a { color: inherit; text-decoration: none; }
   animation-delay: var(--signal-delay, 0s);
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
+  will-change: transform;
+}
+
+.ops-radar-stage.organism-active .ops-radar-signal {
+  animation-name: none;
+}
+
+.ops-radar-stage.organism-active .ops-radar-signal::after {
+  opacity: .34;
 }
 
 .ops-radar-signal.pos-1 { grid-column: 1; grid-row: 1; }

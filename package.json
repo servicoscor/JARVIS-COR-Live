@@ -10,6 +10,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "matter-js": "^0.20.0",
     "ssh2-sftp-client": "^12.1.1"
   },
   "devDependencies": {
