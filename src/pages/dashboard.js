@@ -282,7 +282,7 @@ function standaloneRegionHtml(region, vm) {
           <p>${region.communities.slice(0, 5).join(' · ')}</p>
         </div>
         <div class="ops-header-side">
-          <div><span>Atualizado</span><strong>${vm.time}</strong></div>
+          <div><span>Atualizado</span><strong>${vm.dataUpdatedTime}</strong></div>
         </div>
       </header>
       <main class="ops-status-stage has-alerts has-radar">
@@ -334,7 +334,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
       severity: jam.jamLevel >= 4 ? 2 : 1,
     })),
     ...occurrences.filter((occurrence) => (
-      !occurrence.type.startsWith('WAZ') && !occurrence.type.startsWith('ENE')
+      !['WAZ', 'ENE', 'SIR', 'PLU'].some((prefix) => occurrence.type.startsWith(prefix))
     )).slice(0, 4).map((occurrence) => ({
       type: occurrenceTitle(occurrence.type),
       title: occurrence.title,
@@ -362,7 +362,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     })),
   ];
 
-  if (!transformerPoints.length && region.transformersDown > 0) {
+  if (!transformerPoints.length && region.liveTransformers && region.transformersDown > 0) {
     cards.push({
       type: 'FALTA DE ENERGIA',
       detail: 'transformer',
@@ -442,7 +442,7 @@ function opsRadarMetrics(region, cards, visible, sources) {
     + sources.triggeredSirens.length
     + sources.transformerPoints.length
     + (sources.rainActive ? 1 : 0)
-    + Math.max(region.transformersDown && !sources.transformerPoints.length ? 1 : 0, 0);
+    + Math.max(region.liveTransformers && region.transformersDown && !sources.transformerPoints.length ? 1 : 0, 0);
   const clusters = new Set(cards.map((card) => card.type.replace(/\s+WAZE$/, '').replace(/\s+.*/, ''))).size;
   const active = cards.length;
   const state = critical ? 'critical' : active ? 'attention' : 'normal';

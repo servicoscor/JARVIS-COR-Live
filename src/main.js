@@ -1,7 +1,7 @@
 import './styles.css';
 import { regionsSeed } from './data/regions.js';
 import { dataFeeds as feedsSeed } from './data/feeds.js';
-import { clamp, pct, rand, safeNum, timeString } from './lib/format.js';
+import { pct, safeNum, timeString } from './lib/format.js';
 import { applyOperationalOccurrences, deriveOperationalOccurrences } from './lib/occurrences.js';
 import { computeSeverity, riskScore, severityColors } from './lib/risk.js';
 import { fetchOpenMeteo } from './lib/weather.js';
@@ -22,7 +22,16 @@ const state = {
   openRegionId: parseRegionHash(),
   standalone,
   now: new Date(),
-  regions: structuredClone(regionsSeed),
+  regions: regionsSeed.map((region) => ({
+    ...structuredClone(region),
+    rain: 0,
+    trafficIdx: 0,
+    occurrences: 0,
+    powerIdx: 0,
+    vandalism: 0,
+    transformersDown: 0,
+    transformerPoints: [],
+  })),
   feeds: structuredClone(feedsSeed),
   liveWeather: false,
   corLive: false,
@@ -41,6 +50,7 @@ const state = {
     jams: [],
   },
   transformersLive: false,
+  lastDataAt: null,
   transformerData: {
     source: null,
     transformers: [],
@@ -85,6 +95,7 @@ function viewModel() {
     standalone: state.standalone,
     now: state.now,
     time: timeString(state.now),
+    dataUpdatedTime: state.lastDataAt ? timeString(state.lastDataAt) : '--:--:--',
     regions,
     ranked,
     feeds: state.feeds,
@@ -195,16 +206,6 @@ function closeRegion() {
   setState({ route: 'dashboard', openRegionId: null });
 }
 
-function tick() {
-  state.regions = state.regions.map((region) => ({
-    ...region,
-    temp: region.liveWeather ? region.temp : clamp(region.temp + rand(-0.35, 0.35), region.tempMin, region.tempMax),
-    rain: region.liveRain || region.liveWeather ? region.rain : clamp(region.rain + rand(-3.5, 3.5), 0, 100),
-  }));
-  recomputeOperationalState();
-  renderIfDashboardIdle();
-}
-
 function triggerOperationalEvent() {
   if (!state.activeOccurrences.length) {
     state.activeEvent = null;
@@ -235,6 +236,7 @@ async function refreshWeather() {
       return match ? { ...region, temp: match.temp, rain: match.rain, liveWeather: match.liveWeather } : region;
     });
     state.liveWeather = true;
+    markDataUpdate();
     updateFeed('openMeteo', true, 'ok');
   } catch {
     state.liveWeather = false;
@@ -256,6 +258,7 @@ async function refreshCorApis() {
       forecastExtended: data.forecastExtended,
     };
     state.regions = applyRainAndSirens(state.regions, state.corData);
+    if (data.ok) markDataUpdate();
     recomputeOperationalState();
     Object.entries(data.feeds).forEach(([key, feed]) => updateFeed(key, feed.ok, feed.ok ? `${feed.latency}ms` : 'erro'));
   } catch {
@@ -307,6 +310,7 @@ async function refreshWazeTraffic() {
     const data = await fetchWazeTraffic(state.regions);
     state.wazeLive = true;
     state.wazeData = data;
+    markDataUpdate();
     updateFeed('traffic', true, `${data.latency}ms`);
     recomputeOperationalState();
   } catch {
@@ -322,6 +326,7 @@ async function refreshTransformadores() {
     state.transformersLive = true;
     state.transformerData = data;
     state.regions = applyTransformadores(state.regions, data);
+    markDataUpdate();
     updateFeed('transformadores', true, data.source?.file || `${data.latency}ms`);
     recomputeOperationalState();
   } catch {
@@ -333,6 +338,10 @@ async function refreshTransformadores() {
 
 function updateFeed(key, ok, latency) {
   state.feeds = state.feeds.map((feed) => (feed.key === key ? { ...feed, ok, latency } : feed));
+}
+
+function markDataUpdate() {
+  state.lastDataAt = new Date();
 }
 
 async function postRiskSnapshot() {
@@ -379,7 +388,6 @@ window.addEventListener('hashchange', () => {
 });
 
 timers.push(window.setInterval(updateClock, 1000));
-timers.push(window.setInterval(tick, 2200));
 timers.push(window.setInterval(triggerOperationalEvent, 7500));
 timers.push(window.setInterval(refreshWeather, 5 * 60 * 1000));
 timers.push(window.setInterval(refreshCorApis, 2 * 60 * 1000));

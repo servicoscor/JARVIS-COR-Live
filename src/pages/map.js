@@ -172,7 +172,7 @@ function downTransformers(vm) {
     const points = (region.transformerPoints || []).filter((item) => item.status !== 'online');
     if (points.length) {
       points.forEach((point) => items.push({ ...point, region, isTransformerPoint: true }));
-    } else if (region.transformersDown > 0) {
+    } else if (region.liveTransformers && region.transformersDown > 0) {
       items.push(region);
     }
   });

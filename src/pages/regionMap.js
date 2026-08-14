@@ -139,7 +139,7 @@ function drawRegionMarkers(region, vm) {
       bounds.push([item.lat, item.lng]);
       tourStops.push({ lat: item.lat, lng: item.lng, marker });
     });
-  } else if (region.transformersDown > 0) {
+  } else if (region.liveTransformers && region.transformersDown > 0) {
     const level = region.transformersDown >= 3 ? 'critical' : 'attention';
     const lat = region.lat + 0.006;
     const lng = region.lng + 0.006;
