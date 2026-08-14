@@ -269,10 +269,11 @@ function buildStandaloneRegionUrl(regionId) {
 function standaloneRegionHtml(region, vm) {
   const occurrences = (vm.activeOccurrences || []).filter((occurrence) => occurrence.regionId === region.id);
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
+  const wazeJams = (vm.wazeData.jams || []).filter((jam) => jam.regionId === region.id);
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
   const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
   const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
-  const alertCards = opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens);
+  const alertCards = opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -310,7 +311,7 @@ function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
   return items.length ? `<div class="ops-kpis" style="--ops-kpi-count:${items.length}">${items.join('')}</div>` : '';
 }
 
-function opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens) {
+function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens) {
   const cards = [
     ...wazeAlerts.slice(0, 4).map((alert) => ({
       type: alert.type === 'ACCIDENT' ? 'ACIDENTE WAZE' : 'TRANSITO WAZE',
@@ -321,6 +322,17 @@ function opsAlertCards(region, occurrences, wazeAlerts, triggeredSirens) {
         ['Confianca', `${(alert.trust || 0) >= 20 ? 'Alta' : (alert.trust || 0) >= 8 ? 'Media' : 'Baixa'} · ${alert.trust || 0} confirmacoes`],
       ],
       severity: alert.type === 'ACCIDENT' ? 2 : 1,
+    })),
+    ...wazeJams.slice(0, 4).map((jam) => ({
+      type: 'CONGESTIONAMENTO WAZE',
+      title: jam.name || 'Via monitorada',
+      meta: `${region.name} · nivel ${jam.jamLevel}`,
+      rows: [
+        ['Nivel', `${jam.jamLevel}/5`],
+        ['Atraso', jam.delay ? `${Math.round(jam.delay / 60)} min` : 'Em apuracao'],
+        ['Extensao', jam.length ? `${Math.round(jam.length)} m` : 'Nao informado'],
+      ],
+      severity: jam.jamLevel >= 4 ? 2 : 1,
     })),
     ...occurrences.filter((occurrence) => !occurrence.type.startsWith('WAZ')).slice(0, 4).map((occurrence) => ({
       type: occurrenceTitle(occurrence.type),

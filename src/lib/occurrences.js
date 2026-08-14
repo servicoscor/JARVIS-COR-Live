@@ -63,9 +63,9 @@ export function deriveOperationalOccurrences(regions, corData, wazeData = null) 
         `${traffic.trustedAlerts} alerta(s) confiaveis de transito na regiao`,
         `Maior confianca Waze: ${traffic.maxTrust}`,
       ]));
-    } else if (traffic?.trustedAlerts) {
+    } else if (traffic?.trustedAlerts || traffic?.jams) {
       occurrences.push(makeOccurrence(now, region, 'WAZ-TRF', traffic.maxJamLevel >= 4 ? 2 : 1, 'Transito Waze em atencao', [
-        `${traffic.trustedAlerts} alerta(s) de transito com mais de 7 votos positivos`,
+        `${traffic.trustedAlerts || 0} alerta(s) confiaveis e ${traffic.jams || 0} congestionamento(s) pesado(s)`,
         `Maior nivel de lentidao observado: ${traffic.maxJamLevel || '-'}`,
         `Maior confianca Waze: ${traffic.maxTrust}`,
       ]));

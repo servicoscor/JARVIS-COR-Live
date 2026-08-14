@@ -1,4 +1,6 @@
 const TRUST_MIN = 7;
+const SIGNIFICANT_JAM_LEVEL_MIN = 4;
+const SIGNIFICANT_DELAY_SECONDS = 300;
 const TRAFFIC_TYPES = new Set(['ACCIDENT', 'JAM', 'ROAD_CLOSED', 'HAZARD']);
 const TRAFFIC_SUBTYPES = ['JAM', 'TRAFFIC', 'LANE_CLOSED', 'CAR_STOPPED', 'ROAD_CLOSED', 'ON_ROAD'];
 
@@ -35,6 +37,7 @@ export function trafficStatsByRegion(wazeData) {
   });
   (wazeData?.jams || []).forEach((jam) => {
     const item = map.get(jam.regionId) || { trustedAlerts: 0, accidents: 0, jams: 0, maxTrust: 0, maxJamLevel: 0 };
+    item.jams += 1;
     item.maxJamLevel = Math.max(item.maxJamLevel, jam.jamLevel);
     map.set(jam.regionId, item);
   });
@@ -91,13 +94,24 @@ function normalizeJams(routes, regions) {
       time: Number(route.time || 0),
       historicTime: Number(route.historicTime || 0),
       length: Number(route.length || 0),
+      delay: Math.max(0, Number(route.time || 0) - Number(route.historicTime || 0)),
     };
-  }).filter((jam) => Number.isFinite(jam.lat) && Number.isFinite(jam.lng) && jam.jamLevel >= 3);
+  }).filter((jam) => (
+    Number.isFinite(jam.lat)
+    && Number.isFinite(jam.lng)
+    && isSignificantJam(jam)
+  ));
+}
+
+function isSignificantJam(jam) {
+  if (jam.jamLevel >= SIGNIFICANT_JAM_LEVEL_MIN) return true;
+  if (jam.delay >= SIGNIFICANT_DELAY_SECONDS && jam.jamLevel >= 3) return true;
+  return false;
 }
 
 function isTrustedTrafficAlert(alert) {
-  if (alert.trust <= TRUST_MIN) return false;
   if (alert.type === 'ACCIDENT') return true;
+  if (alert.trust <= TRUST_MIN) return false;
   if (!TRAFFIC_TYPES.has(alert.type)) return false;
   return TRAFFIC_SUBTYPES.some((token) => alert.subType.includes(token));
 }
