@@ -896,11 +896,6 @@ a { color: inherit; text-decoration: none; }
   100% { transform: rotate(360deg); }
 }
 
-@keyframes ops-radar-bar {
-  0%, 100% { transform: scaleY(.28); opacity: .45; }
-  50% { transform: scaleY(var(--bar, .8)); opacity: 1; }
-}
-
 @keyframes ops-card-drift {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(var(--dx, 4px), var(--dy, -4px)); }
@@ -921,7 +916,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   left: 50%;
   top: 0;
-  bottom: 58px;
+  bottom: 0;
   width: min(100%, 1600px);
   transform: translateX(-50%);
   overflow: hidden;
@@ -1170,8 +1165,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-radar.state-normal .ops-radar-dial::after,
-.ops-alert-radar.state-normal .ops-radar-organism i,
-.ops-alert-radar.state-normal .ops-radar-bars span:nth-child(n+34) {
+.ops-alert-radar.state-normal .ops-radar-beam {
   background: #17c9b5;
   box-shadow: 0 0 12px rgba(23,201,181,.75);
 }
@@ -1189,74 +1183,6 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-cards {
   position: absolute;
   inset: 0;
-}
-
-.ops-radar-action {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  width: min(430px, 34%);
-  transform: translateX(-50%);
-  padding: 8px 14px;
-  background: rgba(6,8,14,.78);
-  border: 1px solid rgba(143,162,187,.18);
-  box-shadow: 0 10px 26px rgba(0,0,0,.35);
-  text-align: center;
-}
-
-.ops-radar-action span,
-.ops-radar-sources span {
-  display: block;
-  color: #8fa2bb;
-  font: 800 9px "IBM Plex Mono", monospace;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.ops-radar-action strong {
-  display: block;
-  margin-top: 3px;
-  color: #f4f7fb;
-  font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ops-radar-sources {
-  position: absolute;
-  left: 50%;
-  top: 18px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(72px, 1fr));
-  gap: 8px;
-  width: min(430px, 34%);
-  transform: translateX(-50%);
-}
-
-.ops-radar-sources div {
-  padding: 6px 8px;
-  background: rgba(6,8,14,.58);
-  border: 1px solid rgba(143,162,187,.14);
-  text-align: center;
-}
-
-.ops-radar-sources strong {
-  display: block;
-  margin-top: 2px;
-  color: #9fb0c7;
-  font: 900 13px "IBM Plex Mono", monospace;
-  text-transform: uppercase;
-}
-
-.ops-radar-sources .active {
-  border-color: rgba(239,43,24,.45);
-  box-shadow: inset 0 0 18px rgba(239,43,24,.08);
-}
-
-.ops-radar-sources .active strong {
-  color: #ff6f68;
 }
 
 .ops-alert-radar .ops-alert-card {
@@ -1336,77 +1262,6 @@ a { color: inherit; text-decoration: none; }
 .ops-alert-radar.count-9 .ops-alert-body h2,
 .ops-alert-radar.count-10 .ops-alert-body h2 {
   font-size: 12px;
-}
-
-.ops-radar-footer {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 0 32px;
-  background: rgba(6,7,11,.94);
-  border-top: 1px solid rgba(143,162,187,.18);
-}
-
-.ops-radar-footer div {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.ops-radar-organism {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.ops-radar-organism i {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 auto;
-  background: #ff6f68;
-  box-shadow: 0 0 12px rgba(239,43,24,.9);
-  animation: ops-radar-pulse 1.4s ease-in-out infinite;
-}
-
-.ops-radar-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 28px;
-  margin-left: 16px;
-  overflow: hidden;
-}
-
-.ops-radar-bars span {
-  width: 5px;
-  height: 100%;
-  background: rgba(143,162,187,.55);
-  transform-origin: 50% 100%;
-  animation: ops-radar-bar 1.8s ease-in-out infinite;
-  animation-delay: var(--delay);
-}
-
-.ops-radar-bars span:nth-child(n+34) {
-  background: #ef2b18;
-  box-shadow: 0 0 8px rgba(239,43,24,.55);
-}
-
-.ops-radar-footer b {
-  color: #8fa2bb;
-  font: 800 9px "IBM Plex Mono", monospace;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.ops-radar-footer strong {
-  color: #f4f7fb;
-  font: 900 12px "IBM Plex Mono", monospace;
-  text-transform: uppercase;
 }
 
 .ops-alert-cards.is-compact {
@@ -2650,13 +2505,6 @@ a { color: inherit; text-decoration: none; }
   .ops-alert-radar .ops-alert-card.pos-8 { right: 0; left: auto; top: 75%; bottom: auto; }
   .ops-alert-radar .ops-alert-card.pos-9,
   .ops-alert-radar .ops-alert-card.pos-10 { display: none; }
-  .ops-radar-footer {
-    height: 34px;
-    padding-inline: 18px;
-  }
-  .ops-radar-footer div:nth-child(n+3) {
-    display: none;
-  }
   .ops-alert-head {
     height: 24px;
   }
