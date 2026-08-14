@@ -488,8 +488,8 @@ a { color: inherit; text-decoration: none; }
 .standalone-light {
   position: fixed;
   inset: 0;
-  background: #e9e9e9;
-  color: #0e1724;
+  background: #050a12;
+  color: #e8edf5;
   overflow: hidden;
 }
 
@@ -500,9 +500,9 @@ a { color: inherit; text-decoration: none; }
   margin: 0;
   display: grid;
   grid-template-rows: 35vh 54px minmax(0, 1fr);
-  background: #f4f4f4;
-  border: 1px solid #8f8f8f;
-  color: #0c1623;
+  background: #08111e;
+  border: 1px solid #2a3748;
+  color: #e8edf5;
   font-family: Inter, system-ui, sans-serif;
   box-sizing: border-box;
   overflow: hidden;
@@ -510,16 +510,16 @@ a { color: inherit; text-decoration: none; }
 
 .ops-map {
   min-height: 0;
-  background: #e7e7e7;
-  border-bottom: 1px solid #a8a8a8;
+  background: #0b1421;
+  border-bottom: 1px solid #2a3748;
   overflow: hidden;
 }
 
 .ops-map .leaflet-container {
   width: 100%;
   height: 100%;
-  background: #e7e7e7;
-  filter: grayscale(.1) saturate(.78) contrast(.92) brightness(1.05);
+  background: #0b1421;
+  filter: brightness(.72) saturate(.82) contrast(1.05);
 }
 
 .ops-header {
@@ -528,8 +528,8 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   gap: 24px;
   padding: 0 29px;
-  background: #f7f7f7;
-  border-bottom: 1px solid #9c9c9c;
+  background: #0c1726;
+  border-bottom: 1px solid #2a3748;
 }
 
 .ops-ap {
@@ -540,7 +540,7 @@ a { color: inherit; text-decoration: none; }
 
 .ops-header h1 {
   margin: 0;
-  color: #111;
+  color: #f4f7fb;
   font-size: 30px;
   line-height: 1;
   letter-spacing: 0;
@@ -549,7 +549,7 @@ a { color: inherit; text-decoration: none; }
 
 .ops-header p {
   margin: 0 0 0 12px;
-  color: #4d5968;
+  color: #8fa2bb;
   font-size: 11px;
   display: inline-block;
 }
@@ -565,7 +565,7 @@ a { color: inherit; text-decoration: none; }
 .ops-status-stage {
   display: grid;
   place-items: center;
-  background: #f7f7f7;
+  background: #08111e;
   min-height: 0;
   overflow: hidden;
 }
@@ -581,7 +581,7 @@ a { color: inherit; text-decoration: none; }
 .ops-kpi span,
 .ops-section-title {
   display: block;
-  color: #3f4f63;
+  color: #7f93ad;
   font: 800 9px "IBM Plex Mono", monospace;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -590,7 +590,7 @@ a { color: inherit; text-decoration: none; }
 .ops-header-side strong {
   display: block;
   margin-top: 3px;
-  color: #111;
+  color: #f4f7fb;
   font: 800 12px "IBM Plex Mono", monospace;
 }
 
@@ -621,14 +621,14 @@ a { color: inherit; text-decoration: none; }
 .ops-kpis {
   display: grid;
   grid-template-columns: repeat(var(--ops-kpi-count, 5), 1fr);
-  background: #f6f6f6;
-  border-bottom: 1px solid #a8a8a8;
+  background: #0c1726;
+  border-bottom: 1px solid #2a3748;
 }
 
 .ops-kpi {
   min-height: 48px;
   padding: 11px 18px;
-  border-right: 1px solid #b5b5b5;
+  border-right: 1px solid #263448;
 }
 
 .ops-kpi:last-child {
@@ -638,7 +638,7 @@ a { color: inherit; text-decoration: none; }
 .ops-kpi strong {
   display: block;
   margin-top: 5px;
-  color: #050505;
+  color: #f4f7fb;
   font: 800 20px "IBM Plex Mono", monospace;
 }
 
@@ -651,8 +651,8 @@ a { color: inherit; text-decoration: none; }
 
 .ops-box {
   padding: 24px 28px;
-  background: #f7f7f7;
-  border-right: 1px solid #a8a8a8;
+  background: #0c1726;
+  border-right: 1px solid #2a3748;
   overflow: auto;
 }
 
@@ -691,7 +691,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-primary-title {
-  color: #087345;
+  color: #20d08a;
   font-size: 24px;
   font-weight: 900;
   line-height: 1.05;
@@ -700,16 +700,16 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-primary.attention .ops-primary-title {
-  color: #9a6500;
+  color: #f6bd42;
 }
 
 .ops-primary.critical .ops-primary-title {
-  color: #c4271f;
+  color: #ff6f68;
 }
 
 .ops-primary-sub {
   margin-top: 3px;
-  color: #3e4a59;
+  color: #a7b6c9;
   font-size: 12px;
 }
 
@@ -720,7 +720,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-primary-lines span {
-  color: #111;
+  color: #e8edf5;
   font-size: 12px;
   line-height: 1.35;
 }
@@ -733,12 +733,12 @@ a { color: inherit; text-decoration: none; }
 
 .ops-primary-action {
   margin-top: 12px;
-  color: #111;
+  color: #e8edf5;
   font-size: 12.5px;
 }
 
 .ops-primary-action strong {
-  color: #c4271f;
+  color: #ff6f68;
 }
 
 .ops-alert-cards {
@@ -752,9 +752,9 @@ a { color: inherit; text-decoration: none; }
 .ops-alert-card {
   min-height: 0;
   max-height: 100%;
-  background: #f7f7f7;
-  border: 2px solid #171717;
-  box-shadow: 0 12px 20px rgba(0,0,0,.12);
+  background: #0f1b2c;
+  border: 2px solid #34445a;
+  box-shadow: 0 12px 24px rgba(0,0,0,.34);
   overflow: hidden;
 }
 
@@ -769,7 +769,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-card.attention .ops-alert-head {
-  background: #d99200;
+  background: #c88700;
 }
 
 .ops-alert-head span {
@@ -793,19 +793,19 @@ a { color: inherit; text-decoration: none; }
 
 .ops-alert-body h2 {
   margin: 0;
-  color: #111;
+  color: #f4f7fb;
   font-size: 14px;
   line-height: 1.15;
 }
 
 .ops-alert-body p {
   margin: 3px 0 7px;
-  color: #5f6772;
+  color: #9caec5;
   font-size: 11px;
 }
 
 .ops-alert-rows {
-  border-top: 2px solid #a7a7a7;
+  border-top: 2px solid #415269;
 }
 
 .ops-alert-rows div {
@@ -813,17 +813,17 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   gap: 14px;
   padding: 4px 0;
-  border-bottom: 1px solid #bdbdbd;
+  border-bottom: 1px solid #2a3a50;
 }
 
 .ops-alert-rows span {
-  color: #5a5f67;
+  color: #8799b1;
   font: 900 11px "IBM Plex Mono", monospace;
   text-transform: uppercase;
 }
 
 .ops-alert-rows strong {
-  color: #b91d13;
+  color: #ff6f68;
   font-size: 13px;
   text-align: right;
 }
@@ -860,7 +860,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-trend small {
-  color: #4d5968;
+  color: #8fa2bb;
   font: 800 8px "IBM Plex Mono", monospace;
 }
 
@@ -869,11 +869,11 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   gap: 20px;
   padding: 8px 0;
-  border-bottom: 1px solid #d2d2d2;
+  border-bottom: 1px solid #2a3a50;
 }
 
 .ops-row span {
-  color: #111;
+  color: #e8edf5;
   font-size: 11.5px;
   line-height: 1.35;
 }
@@ -899,18 +899,18 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   gap: 3px;
   padding: 9px 0;
-  border-bottom: 1px solid #d2d2d2;
+  border-bottom: 1px solid #2a3a50;
 }
 
 .ops-list-line strong,
 .ops-point strong {
-  color: #111;
+  color: #f4f7fb;
   font-size: 12.5px;
 }
 
 .ops-list-line span,
 .ops-point span {
-  color: #4d5968;
+  color: #8fa2bb;
   font-size: 10.8px;
 }
 
