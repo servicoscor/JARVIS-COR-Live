@@ -1191,6 +1191,74 @@ a { color: inherit; text-decoration: none; }
   inset: 0;
 }
 
+.ops-radar-action {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: min(430px, 34%);
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: rgba(6,8,14,.78);
+  border: 1px solid rgba(143,162,187,.18);
+  box-shadow: 0 10px 26px rgba(0,0,0,.35);
+  text-align: center;
+}
+
+.ops-radar-action span,
+.ops-radar-sources span {
+  display: block;
+  color: #8fa2bb;
+  font: 800 9px "IBM Plex Mono", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ops-radar-action strong {
+  display: block;
+  margin-top: 3px;
+  color: #f4f7fb;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ops-radar-sources {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(72px, 1fr));
+  gap: 8px;
+  width: min(430px, 34%);
+  transform: translateX(-50%);
+}
+
+.ops-radar-sources div {
+  padding: 6px 8px;
+  background: rgba(6,8,14,.58);
+  border: 1px solid rgba(143,162,187,.14);
+  text-align: center;
+}
+
+.ops-radar-sources strong {
+  display: block;
+  margin-top: 2px;
+  color: #9fb0c7;
+  font: 900 13px "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+}
+
+.ops-radar-sources .active {
+  border-color: rgba(239,43,24,.45);
+  box-shadow: inset 0 0 18px rgba(239,43,24,.08);
+}
+
+.ops-radar-sources .active strong {
+  color: #ff6f68;
+}
+
 .ops-alert-radar .ops-alert-card {
   position: absolute;
   width: clamp(220px, 14.6%, 236px);

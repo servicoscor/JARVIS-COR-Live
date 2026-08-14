@@ -401,6 +401,13 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     transformerPoints,
     rainActive: rainH01 >= 2 || rainH24 >= 25,
   });
+  const sourceStatus = opsRadarSourceStatus(region, {
+    wazeAlerts,
+    wazeJams,
+    triggeredSirens,
+    transformerPoints,
+    rainActive: rainH01 >= 2 || rainH24 >= 25,
+  });
   const bars = Array.from({ length: 44 }, (_, index) => `<span style="--bar:${0.22 + ((index * 17) % 70) / 100};--delay:${-(index % 11) * 0.13}s"></span>`).join('');
   return `
     <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length}">
@@ -428,6 +435,13 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
         <div class="ops-radar-cards">
           ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
         </div>
+        <div class="ops-radar-action">
+          <span>Prioridade ${metrics.priority}</span>
+          <strong>${metrics.action}</strong>
+        </div>
+        <div class="ops-radar-sources">${sourceStatus.map((source) => `
+          <div class="${source.active ? 'active' : ''}"><span>${source.label}</span><strong>${source.value}</strong></div>
+        `).join('')}</div>
       </div>
       <div class="ops-radar-footer">
         <div class="ops-radar-organism"><i></i><strong>${metrics.footerStatus}</strong><div class="ops-radar-bars">${bars}</div></div>
@@ -442,6 +456,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
 
 function opsRadarMetrics(region, cards, visible, sources) {
   const critical = cards.filter((card) => card.severity === 2).length;
+  const topCard = cards[0];
   const signals = sources.wazeAlerts.length
     + sources.wazeJams.length
     + sources.triggeredSirens.length
@@ -460,8 +475,28 @@ function opsRadarMetrics(region, cards, visible, sources) {
     label: active ? 'Ocorrencias ativas' : 'Monitoramento ativo',
     status: active ? 'Varrendo' : 'Normal',
     footerStatus: active ? 'Organismo ativo' : 'Monitoramento ativo',
+    priority: critical ? 'Critica' : active ? 'Atencao' : 'Normal',
+    action: radarRecommendedAction(topCard, state),
     scanSeconds: Math.max(6, Math.min(18, 6 + Math.ceil(signals / 2))),
   };
+}
+
+function radarRecommendedAction(topCard, state) {
+  if (!topCard) return 'Sem acionamento pendente';
+  const actionRow = (topCard.rows || []).find(([label]) => /acao/i.test(label));
+  if (actionRow?.[1]) return actionRow[1];
+  if (state === 'critical') return `Priorizar ${topCard.type.toLowerCase()}`;
+  return `Monitorar ${topCard.type.toLowerCase()}`;
+}
+
+function opsRadarSourceStatus(region, sources) {
+  const transformerDown = sources.transformerPoints.length || region.transformersDown || 0;
+  return [
+    { label: 'Waze', value: sources.wazeAlerts.length + sources.wazeJams.length, active: sources.wazeAlerts.length + sources.wazeJams.length > 0 },
+    { label: 'Sirenes', value: sources.triggeredSirens.length, active: sources.triggeredSirens.length > 0 },
+    { label: 'Energia', value: transformerDown, active: transformerDown > 0 },
+    { label: 'Chuva', value: sources.rainActive ? 'ativa' : '0', active: sources.rainActive },
+  ];
 }
 
 function transformerLocationTitle(item) {
