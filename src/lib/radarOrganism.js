@@ -47,7 +47,8 @@ export function startRadarOrganism(root) {
     x: radarRect.left - stageRect.left + radarRect.width / 2,
     y: radarRect.top - stageRect.top + radarRect.height / 2,
   };
-  const radarBody = Bodies.circle(radarCenter.x, radarCenter.y, radarRect.width / 2 + 7, {
+  const radarRadius = radarRect.width / 2 + 7;
+  const radarBody = Bodies.circle(radarCenter.x, radarCenter.y, radarRadius, {
     isStatic: true,
     restitution: 1,
   });
@@ -66,7 +67,9 @@ export function startRadarOrganism(root) {
       chamfer: { radius: Math.min(12, rect.height / 2) },
     });
     Body.setInertia(body, Infinity);
-    const towardRadar = origin.x < radarCenter.x ? 1 : -1;
+    const spawn = signalSpawnPosition(index, elements.length, stageRect, radarCenter, radarRadius, rect);
+    Body.setPosition(body, spawn);
+    const towardRadar = spawn.x < radarCenter.x ? 1 : -1;
     const speed = .42 + (index % 4) * .09;
     Body.setVelocity(body, {
       x: towardRadar * speed,
@@ -140,4 +143,37 @@ export function startRadarOrganism(root) {
     height: stage.clientHeight,
   };
   resizeObserver.observe(stage);
+}
+
+function signalSpawnPosition(index, count, stageRect, radarCenter, radarRadius, rect) {
+  const left = index % 2 === 0;
+  const slot = Math.floor(index / 2);
+  const sideCount = Math.ceil(count / 2);
+  const leftY = [.14, .43, .72, .87, .28];
+  const rightY = [.23, .56, .82, .39, .69];
+  const leftX = [.18, .1, .24, .15, .27];
+  const rightX = [.82, .91, .76, .86, .73];
+  const halfWidth = rect.width / 2 + 7;
+  const halfHeight = rect.height / 2 + 7;
+  const sidePadding = 12;
+  const wallMinX = halfWidth + sidePadding;
+  const wallMaxX = stageRect.width - halfWidth - sidePadding;
+  const radarGap = 11;
+  const sideLimit = left
+    ? radarCenter.x - radarRadius - halfWidth - radarGap
+    : radarCenter.x + radarRadius + halfWidth + radarGap;
+  const preferredX = stageRect.width * (left ? leftX[slot % leftX.length] : rightX[slot % rightX.length]);
+  const x = left
+    ? clampValue(preferredX, wallMinX, Math.max(wallMinX, sideLimit))
+    : clampValue(preferredX, Math.min(wallMaxX, sideLimit), wallMaxX);
+  const ratios = left ? leftY : rightY;
+  const fallbackRatio = (slot + 1) / (sideCount + 1);
+  const preferredY = stageRect.height * (ratios[slot] ?? fallbackRatio);
+  const y = clampValue(preferredY, halfHeight + sidePadding, stageRect.height - halfHeight - sidePadding);
+  return { x, y };
+}
+
+function clampValue(value, min, max) {
+  if (min > max) return (min + max) / 2;
+  return Math.min(max, Math.max(min, value));
 }
