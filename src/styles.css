@@ -965,7 +965,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(300px, 26.25vw, 420px);
+  width: clamp(360px, 29vw, 464px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   display: grid;
@@ -975,24 +975,24 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-glow {
   position: absolute;
-  inset: -18px;
+  inset: -26px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(239,43,24,.18), transparent 66%);
+  background: radial-gradient(circle, rgba(239,43,24,.24), transparent 67%);
   animation: ops-radar-pulse 4.8s ease-in-out infinite;
 }
 
 .ops-radar-dial {
   position: absolute;
-  inset: 3%;
+  inset: 5.5%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 42% 34%, rgba(80,91,108,.45), transparent 21%),
-    radial-gradient(circle at 50% 50%, #070b13 0 34%, #090d15 35% 48%, #151a22 49% 58%, #05070c 60% 100%);
-  border: 1px solid rgba(190,220,255,.22);
+    radial-gradient(circle at 42% 34%, rgba(80,91,108,.36), transparent 21%),
+    radial-gradient(circle at 50% 50%, #060a11 0 33%, #0a0f17 34% 47%, #151b25 48% 58%, #05070c 60% 100%);
+  border: 1px solid rgba(190,220,255,.28);
   box-shadow:
     0 0 52px rgba(0,0,0,.9),
     inset 0 0 38px rgba(0,0,0,.96),
-    inset 0 0 0 12px rgba(4,7,13,.85);
+    inset 0 0 0 10px rgba(4,7,13,.88);
 }
 
 .ops-radar-dial::before {
@@ -1023,15 +1023,15 @@ a { color: inherit; text-decoration: none; }
   inset: 0;
   border-radius: 50%;
   background:
-    conic-gradient(from 205deg,
-      rgba(239,43,24,.95) 0deg 76deg,
-      transparent 76deg 116deg,
-      rgba(255,84,51,.95) 116deg 164deg,
-      transparent 164deg 220deg,
-      rgba(103,120,141,.8) 220deg 304deg,
-      transparent 304deg 360deg);
-  mask: radial-gradient(circle, transparent 0 88%, #000 89% 92.5%, transparent 93.5%);
-  filter: drop-shadow(0 0 10px rgba(239,43,24,.7));
+    conic-gradient(from -48deg,
+      rgba(255,47,26,1) 0deg 124deg,
+      transparent 124deg 158deg,
+      rgba(255,92,50,.96) 158deg 198deg,
+      transparent 198deg 230deg,
+      rgba(114,132,154,.9) 230deg 316deg,
+      transparent 316deg 360deg);
+  mask: radial-gradient(circle, transparent 0 83%, #000 84% 92.5%, transparent 93.4%);
+  filter: drop-shadow(0 0 12px rgba(239,43,24,.86));
   animation: ops-radar-spin 28s linear infinite;
 }
 
@@ -1044,13 +1044,13 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-radar-outer::before {
-  background: conic-gradient(from 268deg, transparent 0 260deg, rgba(239,43,24,.9) 260deg 346deg, transparent 346deg 360deg);
-  mask: radial-gradient(circle, transparent 0 82%, #000 83% 85%, transparent 86%);
+  background: conic-gradient(from 268deg, transparent 0 256deg, rgba(255,47,26,.98) 256deg 350deg, transparent 350deg 360deg);
+  mask: radial-gradient(circle, transparent 0 78%, #000 79% 82%, transparent 83%);
 }
 
 .ops-radar-outer::after {
-  background: conic-gradient(from 82deg, transparent 0 4deg, rgba(239,43,24,.95) 4deg 126deg, transparent 126deg 360deg);
-  mask: radial-gradient(circle, transparent 0 72%, #000 73% 76%, transparent 77%);
+  background: conic-gradient(from 82deg, transparent 0 8deg, rgba(255,89,48,.95) 8deg 128deg, transparent 128deg 360deg);
+  mask: radial-gradient(circle, transparent 0 67%, #000 68.5% 72%, transparent 73.5%);
 }
 
 .ops-radar-outer i {
@@ -1063,10 +1063,10 @@ a { color: inherit; text-decoration: none; }
   z-index: 2;
   left: 50%;
   top: 50%;
-  width: 40%;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(239,43,24,.95), rgba(239,43,24,.45), transparent);
-  box-shadow: 0 0 12px rgba(239,43,24,.85);
+  width: 43%;
+  height: 2.5px;
+  background: linear-gradient(90deg, rgba(255,50,28,1), rgba(239,43,24,.52), transparent);
+  box-shadow: 0 0 16px rgba(239,43,24,.95);
   transform-origin: 0 50%;
   animation: ops-radar-scan 4.5s linear infinite;
 }
@@ -1086,13 +1086,13 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-core {
   position: relative;
   z-index: 4;
-  width: 31%;
+  width: 29%;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   align-content: center;
   border-radius: 50%;
-  background: rgba(6,8,14,.82);
+  background: radial-gradient(circle, rgba(8,11,18,.96) 0 58%, rgba(4,6,12,.86) 100%);
   border: 1px solid rgba(143,162,187,.28);
   text-align: center;
 }
@@ -1100,7 +1100,7 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-reticle {
   position: absolute;
   z-index: 3;
-  inset: 24%;
+  inset: 23%;
   border-radius: 50%;
   pointer-events: none;
   color: rgba(143,162,187,.86);
