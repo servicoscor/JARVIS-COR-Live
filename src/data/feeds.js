@@ -6,6 +6,7 @@ export const dataFeeds = [
   { key: 'previsaoAgora', name: 'Previsao Atual', latency: '-', ok: false },
   { key: 'previsaoEstendida', name: 'Previsao Estendida', latency: '-', ok: false },
   { key: 'traffic', name: 'Transito', latency: 'fonte pendente', ok: false },
+  { key: 'transformadores', name: 'Light KML', latency: '-', ok: false },
   { key: 'openMeteo', name: 'Open-Meteo', latency: '-', ok: false },
   { key: 'rainViewer', name: 'RainViewer', latency: '-', ok: true },
 ];

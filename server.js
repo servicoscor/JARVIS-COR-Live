@@ -9,6 +9,7 @@ const historyFile = join(dataDir, 'risk-history.jsonl');
 const MAX_HISTORY_LINES = 25000;
 const HISTORY_TZ_OFFSET_MS = -3 * 60 * 60 * 1000; // America/Sao_Paulo, sem horario de verao
 
+loadEnvFile(resolve('.env'));
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 if (!existsSync(historyFile)) writeFileSync(historyFile, '');
 
@@ -16,6 +17,15 @@ const host = process.env.HOST || '0.0.0.0';
 const port = Number(process.env.PORT || 4173);
 const distDir = resolve('dist');
 const imageDir = resolve('imagen');
+const TRANSFORMERS_CACHE_MS = Number(process.env.TRANSFORMERS_CACHE_MS || 5 * 60 * 1000);
+const SFTP_CONFIG = {
+  host: process.env.SFTP_HOST || 'sftp-corj.light.com.br',
+  port: Number(process.env.SFTP_PORT || 22),
+  username: process.env.SFTP_USERNAME || '',
+  password: process.env.SFTP_PASSWORD || '',
+};
+const SFTP_REMOTE_DIR = process.env.SFTP_REMOTE_DIR || '/Light/';
+let transformersCache = { updatedAt: 0, data: null };
 
 const apiRoutes = new Map([
   ['/api/sirenes', 'http://websirene.rio.rj.gov.br/xml/sirenes.xml'],
@@ -51,6 +61,11 @@ createServer((req, res) => {
 
   if (requestUrl.pathname === '/api/history' && req.method === 'GET') {
     handleHistoryGet(requestUrl, res);
+    return;
+  }
+
+  if (requestUrl.pathname === '/api/transformadores' && req.method === 'GET') {
+    handleTransformadoresGet(res);
     return;
   }
 
@@ -102,6 +117,141 @@ function handleHistoryGet(requestUrl, res) {
     res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ ok: false, error: error.message }));
   }
+}
+
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) return;
+  readFileSync(filePath, 'utf8').split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match || process.env[match[1]] !== undefined) return;
+    process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+  });
+}
+
+async function handleTransformadoresGet(res) {
+  try {
+    const now = Date.now();
+    if (transformersCache.data && now - transformersCache.updatedAt < TRANSFORMERS_CACHE_MS) {
+      writeJson(res, 200, { ...transformersCache.data, cached: true });
+      return;
+    }
+    const data = await fetchTransformersFromSftp();
+    transformersCache = { updatedAt: now, data };
+    writeJson(res, 200, { ...data, cached: false });
+  } catch (error) {
+    writeJson(res, 503, { ok: false, error: error.message });
+  }
+}
+
+async function fetchTransformersFromSftp() {
+  if (!SFTP_CONFIG.username || !SFTP_CONFIG.password) {
+    throw new Error('Credenciais SFTP nao configuradas: defina SFTP_USERNAME e SFTP_PASSWORD');
+  }
+
+  const { default: SftpClient } = await import('ssh2-sftp-client');
+  const sftp = new SftpClient();
+  try {
+    await sftp.connect({
+      host: SFTP_CONFIG.host,
+      port: SFTP_CONFIG.port,
+      username: SFTP_CONFIG.username,
+      password: SFTP_CONFIG.password,
+      readyTimeout: Number(process.env.SFTP_READY_TIMEOUT || 15000),
+    });
+    const files = (await sftp.list(SFTP_REMOTE_DIR))
+      .filter((file) => file.type !== 'd' && /\.kml$/i.test(file.name))
+      .sort((a, b) => (Number(b.modifyTime || 0) - Number(a.modifyTime || 0)) || b.name.localeCompare(a.name));
+    if (!files.length) throw new Error(`Nenhum arquivo .kml encontrado em ${SFTP_REMOTE_DIR}`);
+
+    const file = files[0];
+    const remotePath = `${SFTP_REMOTE_DIR.replace(/\/?$/, '/')}${file.name}`;
+    const payload = await sftp.get(remotePath);
+    const kml = Buffer.isBuffer(payload) ? payload.toString('utf8') : String(payload);
+    const transformers = parseTransformersKml(kml);
+
+    return {
+      ok: true,
+      source: {
+        type: 'sftp',
+        host: SFTP_CONFIG.host,
+        remoteDir: SFTP_REMOTE_DIR,
+        file: file.name,
+        modifiedAt: file.modifyTime ? new Date(file.modifyTime).toISOString() : null,
+      },
+      count: transformers.length,
+      transformers,
+    };
+  } finally {
+    try {
+      await sftp.end();
+    } catch {
+      // Conexao ja encerrada.
+    }
+  }
+}
+
+function parseTransformersKml(kml) {
+  const placemarks = [...String(kml).matchAll(/<Placemark\b[\s\S]*?<\/Placemark>/gi)].map((match) => match[0]);
+  return placemarks.map((block, index) => {
+    const coordinateText = firstTag(block, 'coordinates');
+    const [lng, lat] = String(coordinateText || '').trim().split(/\s+/)[0]?.split(',').map(Number) || [];
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const description = cleanXmlText(firstTag(block, 'description'));
+    const name = cleanXmlText(firstTag(block, 'name')) || `Transformador ${index + 1}`;
+    const text = `${name} ${description} ${cleanXmlText(block)}`;
+    return {
+      id: stableId(`${name}|${lat.toFixed(6)}|${lng.toFixed(6)}`),
+      name,
+      description,
+      lat,
+      lng,
+      status: inferTransformerStatus(text),
+    };
+  }).filter(Boolean);
+}
+
+function firstTag(text, tag) {
+  const match = String(text).match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return match ? match[1] : '';
+}
+
+function cleanXmlText(value) {
+  return String(value || '')
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function inferTransformerStatus(text) {
+  const normalized = String(text || '').toLowerCase();
+  if (/(normal|online|operando|energizado|ligado)/.test(normalized)) return 'online';
+  if (/(fora|offline|desligad|interrompid|sem energia|defeito|inoperante|aberto|falha)/.test(normalized)) return 'offline';
+  return 'offline';
+}
+
+function stableId(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+  }
+  return `tr-${Math.abs(hash).toString(36)}`;
+}
+
+function writeJson(res, statusCode, payload) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': '*',
+  });
+  res.end(JSON.stringify(payload));
 }
 
 function appendHistoryLine(entry) {

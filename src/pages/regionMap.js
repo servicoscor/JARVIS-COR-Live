@@ -110,7 +110,34 @@ function drawRegionMarkers(region, vm) {
     tourStops.push({ lat: alert.lat, lng: alert.lng, marker });
   });
 
-  if (region.transformersDown > 0) {
+  const transformerPoints = (region.transformerPoints || []).filter((item) => item.status !== 'online');
+  if (transformerPoints.length) {
+    transformerPoints.forEach((item) => {
+      const marker = L.marker([item.lat, item.lng], {
+        icon: divIcon('power', transformerPoints.length >= 3 ? 'critical' : 'attention', 'TRF'),
+        zIndexOffset: 960,
+      });
+      marker.bindPopup(`
+        <div style="min-width:260px">
+          <div class="ap">ENERGIA / LIGHT KML</div>
+          <div class="popup-title">${item.name || 'Transformador fora'}</div>
+          <div class="popup-sub">${region.name} - coordenada real do KML</div>
+          <div class="stats">
+            <div><div class="stat-label">STATUS</div><div class="stat-value">Fora</div></div>
+            <div><div class="stat-label">ZONA</div><div class="stat-value">${transformerPoints.length}</div></div>
+            <div><div class="stat-label">FONTE</div><div class="stat-value">Light</div></div>
+          </div>
+          <div class="popup-event">
+            <div class="popup-line"><span>01</span>Validar impacto local com a concessionaria.</div>
+            <div class="popup-line"><span>02</span>${item.description || 'Sem detalhe adicional no KML.'}</div>
+          </div>
+        </div>
+      `);
+      markerLayer.addLayer(marker);
+      bounds.push([item.lat, item.lng]);
+      tourStops.push({ lat: item.lat, lng: item.lng, marker });
+    });
+  } else if (region.transformersDown > 0) {
     const level = region.transformersDown >= 3 ? 'critical' : 'attention';
     const lat = region.lat + 0.006;
     const lng = region.lng + 0.006;

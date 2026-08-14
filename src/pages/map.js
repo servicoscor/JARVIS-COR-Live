@@ -153,7 +153,7 @@ function updateOperationalLayers(vm) {
   (vm.corData.rainStations || []).forEach((station) => rainStationLayer.addLayer(rainStationMarker(station)));
   triggeredSirens(vm).forEach((siren) => sirenLayer.addLayer(sirenMarker(siren)));
   (vm.wazeData.trustedAlerts || []).forEach((alert) => wazeLayer.addLayer(wazeMarker(alert)));
-  downTransformers(vm).forEach((region) => transformerLayer.addLayer(transformerMarker(region)));
+  downTransformers(vm).forEach((item) => transformerLayer.addLayer(transformerMarker(item)));
   operationalOccurrences(vm).forEach((occurrence) => {
     occurrenceLayer.addLayer(occurrenceArea(occurrence));
     if (occurrence.wazeAlert) occurrenceLayer.addLayer(occurrenceMarker(occurrence));
@@ -167,7 +167,16 @@ function triggeredSirens(vm) {
 }
 
 function downTransformers(vm) {
-  return (vm.regions || []).filter((region) => region.transformersDown > 0);
+  const items = [];
+  (vm.regions || []).forEach((region) => {
+    const points = (region.transformerPoints || []).filter((item) => item.status !== 'online');
+    if (points.length) {
+      points.forEach((point) => items.push({ ...point, region, isTransformerPoint: true }));
+    } else if (region.transformersDown > 0) {
+      items.push(region);
+    }
+  });
+  return items;
 }
 
 function operationalOccurrences(vm) {
@@ -326,6 +335,7 @@ function sirenMarker(siren) {
 }
 
 function transformerMarker(region) {
+  if (region.isTransformerPoint) return transformerPointMarker(region);
   const level = region.transformersDown >= 3 ? 'critical' : 'attention';
   const active = Math.max(region.transformersTotal - region.transformersDown, 0);
   const pctDown = region.transformersTotal ? Math.round((region.transformersDown / region.transformersTotal) * 100) : 0;
@@ -352,6 +362,32 @@ function transformerMarker(region) {
         <div class="popup-line"><span>01</span>${region.transformersDown >= 3 ? 'Acionar concessionaria e validar bairros sensiveis.' : 'Monitorar recomposicao e confirmar impacto local.'}</div>
         <div class="popup-line"><span>02</span>Sem coordenada individual da rede eletrica integrada.</div>
         <div class="popup-line"><span>03</span>Ponto exibido no centro operacional da zona.</div>
+      </div>
+    </div>
+  `);
+  return marker;
+}
+
+function transformerPointMarker(point) {
+  const region = point.region || {};
+  const totalDown = region.transformersDown || 1;
+  const marker = L.marker([point.lat, point.lng], {
+    icon: divIcon('power', totalDown >= 3 ? 'critical' : 'attention', 'TRF'),
+    zIndexOffset: 960,
+  });
+  marker.bindPopup(`
+    <div style="min-width:260px">
+      <div class="ap">ENERGIA / LIGHT KML</div>
+      <div class="popup-title">${point.name || 'Transformador fora'}</div>
+      <div class="popup-sub">${region.name || point.regionName || 'Regiao'} - coordenada real do KML</div>
+      <div class="stats">
+        <div><div class="stat-label">STATUS</div><div class="stat-value">Fora</div></div>
+        <div><div class="stat-label">REGIAO</div><div class="stat-value">${region.name || '-'}</div></div>
+        <div><div class="stat-label">TOTAL ZONA</div><div class="stat-value">${totalDown}</div></div>
+      </div>
+      <div class="popup-event">
+        <div class="popup-line"><span>01</span>Validar impacto local com a concessionaria.</div>
+        <div class="popup-line"><span>02</span>${point.description || 'Sem detalhe adicional no KML.'}</div>
       </div>
     </div>
   `);

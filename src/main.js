@@ -6,6 +6,7 @@ import { applyOperationalOccurrences, deriveOperationalOccurrences } from './lib
 import { computeSeverity, riskScore, severityColors } from './lib/risk.js';
 import { fetchOpenMeteo } from './lib/weather.js';
 import { applyRainAndSirens, fetchCorApis } from './lib/providers/corApis.js';
+import { applyTransformadores, fetchTransformadores } from './lib/providers/transformadores.js';
 import { fetchWazeTraffic } from './lib/providers/waze.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderMapPage, destroyMapPage } from './pages/map.js';
@@ -38,6 +39,11 @@ const state = {
     trustedAlerts: [],
     alerts: [],
     jams: [],
+  },
+  transformersLive: false,
+  transformerData: {
+    source: null,
+    transformers: [],
   },
   activeOccurrences: [],
   activeEvent: null,
@@ -87,6 +93,8 @@ function viewModel() {
     corData: state.corData,
     wazeLive: state.wazeLive,
     wazeData: state.wazeData,
+    transformersLive: state.transformersLive,
+    transformerData: state.transformerData,
     activeEvent: state.activeEvent,
     activeOccurrences: state.activeOccurrences,
     eventLog: state.eventLog,
@@ -308,6 +316,21 @@ async function refreshWazeTraffic() {
   renderUnlessRegionPanelOpen();
 }
 
+async function refreshTransformadores() {
+  try {
+    const data = await fetchTransformadores(state.regions);
+    state.transformersLive = true;
+    state.transformerData = data;
+    state.regions = applyTransformadores(state.regions, data);
+    updateFeed('transformadores', true, data.source?.file || `${data.latency}ms`);
+    recomputeOperationalState();
+  } catch {
+    state.transformersLive = false;
+    updateFeed('transformadores', false, 'erro');
+  }
+  renderUnlessRegionPanelOpen();
+}
+
 function updateFeed(key, ok, latency) {
   state.feeds = state.feeds.map((feed) => (feed.key === key ? { ...feed, ok, latency } : feed));
 }
@@ -361,6 +384,7 @@ timers.push(window.setInterval(triggerOperationalEvent, 7500));
 timers.push(window.setInterval(refreshWeather, 5 * 60 * 1000));
 timers.push(window.setInterval(refreshCorApis, 2 * 60 * 1000));
 timers.push(window.setInterval(refreshWazeTraffic, 60 * 1000));
+timers.push(window.setInterval(refreshTransformadores, 5 * 60 * 1000));
 timers.push(window.setInterval(postRiskSnapshot, 10 * 60 * 1000));
 timers.push(window.setInterval(fetchRiskHistory, 10 * 60 * 1000));
 
@@ -370,5 +394,6 @@ window.setTimeout(triggerOperationalEvent, 1400);
 refreshWeather();
 refreshCorApis();
 refreshWazeTraffic();
+refreshTransformadores();
 fetchRiskHistory();
 window.setTimeout(postRiskSnapshot, 30 * 1000);

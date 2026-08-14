@@ -312,6 +312,7 @@ function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
 }
 
 function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens) {
+  const transformerPoints = (region.transformerPoints || []).filter((item) => item.status !== 'online');
   const cards = [
     ...wazeAlerts.slice(0, 4).map((alert) => ({
       type: alert.type === 'ACCIDENT' ? 'ACIDENTE WAZE' : 'TRANSITO WAZE',
@@ -334,7 +335,9 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
       ],
       severity: jam.jamLevel >= 4 ? 2 : 1,
     })),
-    ...occurrences.filter((occurrence) => !occurrence.type.startsWith('WAZ')).slice(0, 4).map((occurrence) => ({
+    ...occurrences.filter((occurrence) => (
+      !occurrence.type.startsWith('WAZ') && !(transformerPoints.length && occurrence.type.startsWith('ENE'))
+    )).slice(0, 4).map((occurrence) => ({
       type: occurrenceTitle(occurrence.type),
       title: occurrence.title,
       meta: `${occurrence.source} · ${timeString(new Date(occurrence.startedAt)).slice(0, 8)}`,
@@ -351,9 +354,19 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
       ],
       severity: 2,
     })),
+    ...transformerPoints.slice(0, 4).map((item) => ({
+      type: 'FALTA DE ENERGIA',
+      title: item.name || 'Transformador fora',
+      meta: `${region.name} Â· Light KML`,
+      rows: [
+        ['Status', 'Fora de operacao'],
+        ['Coord.', `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`],
+      ],
+      severity: transformerPoints.length >= 3 ? 2 : 1,
+    })),
   ];
 
-  if (region.transformersDown > 0) {
+  if (!transformerPoints.length && region.transformersDown > 0) {
     cards.push({
       type: 'FALTA DE ENERGIA',
       title: region.name,
@@ -1107,6 +1120,7 @@ function operationalMapPoints(region, vm, zoom, containerW = 140, containerH = 9
   const sirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id);
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
   const transformersDown = region.transformersDown || 0;
+  const transformerPoints = (region.transformerPoints || []).filter((item) => item.status !== 'online');
 
   rainStations.forEach((station) => {
     const h01 = Number.isFinite(station.h01) ? station.h01 : 0;
@@ -1130,7 +1144,17 @@ function operationalMapPoints(region, vm, zoom, containerW = 140, containerH = 9
     });
   });
 
-  if (transformersDown > 0) {
+  if (transformerPoints.length) {
+    transformerPoints.forEach((item) => {
+      items.push({
+        lat: item.lat,
+        lng: item.lng,
+        kind: 'power',
+        level: transformerPoints.length >= 3 ? 'critical' : 'attention',
+        label: item.name || 'Transformador fora',
+      });
+    });
+  } else if (transformersDown > 0) {
     items.push({
       lat: region.lat,
       lng: region.lng,
