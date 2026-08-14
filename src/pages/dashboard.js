@@ -271,9 +271,7 @@ function standaloneRegionHtml(region, vm) {
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
   const wazeJams = (vm.wazeData.jams || []).filter((jam) => jam.regionId === region.id);
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
-  const offlineSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && !siren.online);
-  const decision = operationalDecision(region, occurrences, wazeAlerts, triggeredSirens);
-  const alertCards = opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
+  const radarPanel = opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -287,8 +285,8 @@ function standaloneRegionHtml(region, vm) {
           <div><span>Atualizado</span><strong>${vm.time}</strong></div>
         </div>
       </header>
-      <main class="ops-status-stage ${alertCards ? 'has-alerts' : ''}">
-        ${alertCards || opsPrimaryStatus(region, occurrences, wazeAlerts, triggeredSirens, decision)}
+      <main class="ops-status-stage has-alerts has-radar">
+        ${radarPanel}
       </main>
     </section>
   `;

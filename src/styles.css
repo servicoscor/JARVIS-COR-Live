@@ -578,6 +578,10 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden;
 }
 
+.ops-status-stage.has-radar {
+  padding: 0;
+}
+
 .ops-header-side span,
 .ops-kpi span,
 .ops-section-title {
