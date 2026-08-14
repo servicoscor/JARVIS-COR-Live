@@ -395,9 +395,11 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     });
   }
 
-  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 4);
+  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 8);
   if (!visible.length) return '';
-  return `<div class="ops-alert-cards">${visible.map(opsAlertCard).join('')}</div>`;
+  const rows = visible.length > 4 ? 2 : 1;
+  const compact = visible.length > 4 ? 'is-compact' : '';
+  return `<div class="ops-alert-cards ${compact} count-${visible.length}" style="--alert-count:${visible.length};--alert-rows:${rows}">${visible.map(opsAlertCard).join('')}</div>`;
 }
 
 function transformerLocationTitle(item) {
