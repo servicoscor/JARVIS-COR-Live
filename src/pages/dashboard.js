@@ -402,7 +402,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     rainActive: rainH01 >= 2 || rainH24 >= 25,
   });
   return `
-    <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length}">
+    <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length};--radar-rows:${Math.max(1, Math.ceil(visible.length / 2))}">
       <div class="ops-radar-stage">
         <div class="ops-radar-grid" aria-hidden="true"></div>
         <div class="ops-radar-center" aria-hidden="true">
@@ -460,20 +460,20 @@ function opsRadarMetrics(region, cards, visible, sources) {
 
 function opsRadarBlip(card, index) {
   const spots = [
-    [63, 36], [71, 51], [60, 66], [43, 68], [31, 54],
-    [38, 38], [52, 28], [76, 40], [25, 43], [69, 72],
+    [50, 17], [68, 25], [77, 39], [76, 63], [60, 80],
+    [40, 80], [24, 63], [23, 39], [32, 25], [50, 84],
   ];
   const [x, y] = spots[index % spots.length];
   return `<span class="${card.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%">${opsRadarBlipCode(card.type)}</span>`;
 }
 
 function opsRadarBlipCode(type) {
-  if (/ACIDENTE/.test(type)) return 'AC';
-  if (/CONGESTIONAMENTO|TRANSITO/.test(type)) return 'TR';
-  if (/SIRENE/.test(type)) return 'SI';
-  if (/ENERGIA/.test(type)) return 'EN';
-  if (/ALAGAMENTO|CHUVA/.test(type)) return 'CH';
-  return 'OP';
+  if (/ACIDENTE/.test(type)) return 'A';
+  if (/CONGESTIONAMENTO|TRANSITO/.test(type)) return 'T';
+  if (/SIRENE/.test(type)) return 'S';
+  if (/ENERGIA/.test(type)) return 'E';
+  if (/ALAGAMENTO|CHUVA/.test(type)) return 'C';
+  return '!';
 }
 
 function transformerLocationTitle(item) {
