@@ -276,7 +276,7 @@ function standaloneRegionHtml(region, vm) {
   const wazeAlerts = (vm.wazeData.trustedAlerts || []).filter((alert) => alert.regionId === region.id);
   const wazeJams = (vm.wazeData.jams || []).filter((jam) => jam.regionId === region.id);
   const triggeredSirens = (vm.corData.sirens || []).filter((siren) => siren.regionId === region.id && siren.triggered);
-  const radarPanel = opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens);
+  const radarPanel = opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens, radarStageVariables(vm.corData.cityStage?.color));
 
   return `
     <section class="ops-region-page" id="${regionPanelId(region)}" style="--ops-accent:${region.colors.border}">
@@ -314,7 +314,7 @@ function opsKpis(region, occurrences, wazeAlerts, offlineSirens) {
   return items.length ? `<div class="ops-kpis" style="--ops-kpi-count:${items.length}">${items.join('')}</div>` : '';
 }
 
-function opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens) {
+function opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSirens, stageVariables) {
   const transformerPoints = (region.transformerPoints || []).filter((item) => item.status !== 'online');
   const signals = [
     ...wazeAlerts.slice(0, 4).map((alert) => ({
@@ -407,7 +407,7 @@ function opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSir
     rainActive: rainH01 >= 2 || rainH24 >= 25,
   });
   return `
-    <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length};--radar-rows:${Math.max(1, Math.ceil(visible.length / 2))}">
+    <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length};--radar-rows:${Math.max(1, Math.ceil(visible.length / 2))};${stageVariables}">
       <div class="ops-radar-stage">
         <div class="ops-radar-grid" aria-hidden="true"></div>
         <div class="ops-radar-center" aria-hidden="true">
@@ -438,6 +438,12 @@ function opsRadarSignals(region, occurrences, wazeAlerts, wazeJams, triggeredSir
       </div>
     </div>
   `;
+}
+
+function radarStageVariables(apiColor) {
+  const color = /^#[0-9a-f]{6}$/i.test(String(apiColor || '')) ? String(apiColor) : '#607086';
+  const rgb = color.slice(1).match(/.{2}/g).map((part) => parseInt(part, 16));
+  return `--radar-stage-color:${color};--radar-stage-rgb:${rgb.join(' ')}`;
 }
 
 function opsRadarMetrics(region, signals, sources) {
