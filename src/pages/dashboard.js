@@ -394,10 +394,16 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   }
 
   const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 10);
-  const critical = visible.filter((card) => card.severity === 2).length;
+  const metrics = opsRadarMetrics(region, cards, visible, {
+    wazeAlerts,
+    wazeJams,
+    triggeredSirens,
+    transformerPoints,
+    rainActive: rainH01 >= 2 || rainH24 >= 25,
+  });
   const bars = Array.from({ length: 44 }, (_, index) => `<span style="--bar:${0.22 + ((index * 17) % 70) / 100};--delay:${-(index % 11) * 0.13}s"></span>`).join('');
   return `
-    <div class="ops-alert-radar count-${visible.length}" style="--alert-count:${visible.length}">
+    <div class="ops-alert-radar count-${visible.length} state-${metrics.state}" style="--alert-count:${visible.length}">
       <div class="ops-radar-grid" aria-hidden="true"></div>
       <div class="ops-radar-center" aria-hidden="true">
         <div class="ops-radar-glow"></div>
@@ -405,23 +411,47 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
           <span></span><span></span><span></span><span></span>
         </div>
         <div class="ops-radar-core">
-          <span>Ocorrencias ativas</span>
-          <strong>${visible.length}</strong>
-          <em>Varrendo</em>
+          <span>${metrics.label}</span>
+          <strong>${metrics.active}</strong>
+          <em>${metrics.status}</em>
         </div>
       </div>
       <div class="ops-radar-cards">
         ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
       </div>
       <div class="ops-radar-footer">
-        <div class="ops-radar-organism"><i></i><strong>Organismo ativo</strong><div class="ops-radar-bars">${bars}</div></div>
-        <div><b>Sinais</b><strong>${visible.length + critical}</strong></div>
-        <div><b>Criticos</b><strong>${critical}</strong></div>
-        <div><b>Aglomeracoes</b><strong>${visible.length ? Math.ceil(visible.length / 4) : 0}</strong></div>
-        <div><b>Varredura</b><strong>11 s</strong></div>
+        <div class="ops-radar-organism"><i></i><strong>${metrics.footerStatus}</strong><div class="ops-radar-bars">${bars}</div></div>
+        <div><b>Sinais</b><strong>${metrics.signals}</strong></div>
+        <div><b>Criticos</b><strong>${metrics.critical}</strong></div>
+        <div><b>Aglomeracoes</b><strong>${metrics.clusters}</strong></div>
+        <div><b>Varredura</b><strong>${metrics.scanSeconds} s</strong></div>
       </div>
     </div>
   `;
+}
+
+function opsRadarMetrics(region, cards, visible, sources) {
+  const critical = cards.filter((card) => card.severity === 2).length;
+  const signals = sources.wazeAlerts.length
+    + sources.wazeJams.length
+    + sources.triggeredSirens.length
+    + sources.transformerPoints.length
+    + (sources.rainActive ? 1 : 0)
+    + Math.max(region.transformersDown && !sources.transformerPoints.length ? 1 : 0, 0);
+  const clusters = new Set(cards.map((card) => card.type.replace(/\s+WAZE$/, '').replace(/\s+.*/, ''))).size;
+  const active = cards.length;
+  const state = critical ? 'critical' : active ? 'attention' : 'normal';
+  return {
+    active,
+    signals,
+    critical,
+    clusters,
+    state,
+    label: active ? 'Ocorrencias ativas' : 'Monitoramento ativo',
+    status: active ? 'Varrendo' : 'Normal',
+    footerStatus: active ? 'Organismo ativo' : 'Monitoramento ativo',
+    scanSeconds: Math.max(6, Math.min(18, 6 + Math.ceil(signals / 2))),
+  };
 }
 
 function transformerLocationTitle(item) {
