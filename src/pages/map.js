@@ -378,16 +378,16 @@ function transformerPointMarker(point) {
   marker.bindPopup(`
     <div style="min-width:260px">
       <div class="ap">ENERGIA / LIGHT KML</div>
-      <div class="popup-title">${point.name || 'Transformador fora'}</div>
-      <div class="popup-sub">${region.name || point.regionName || 'Regiao'} - coordenada real do KML</div>
+      <div class="popup-title">${point.endereco || point.location || point.name || 'Transformador fora'}</div>
+      <div class="popup-sub">${point.bairro || region.name || point.regionName || 'Regiao'} - ${point.referencia || 'ponto exato do KML'}</div>
       <div class="stats">
         <div><div class="stat-label">STATUS</div><div class="stat-value">Fora</div></div>
-        <div><div class="stat-label">REGIAO</div><div class="stat-value">${region.name || '-'}</div></div>
-        <div><div class="stat-label">TOTAL ZONA</div><div class="stat-value">${totalDown}</div></div>
+        <div><div class="stat-label">CODIGO</div><div class="stat-value">${point.codigo || point.name || '-'}</div></div>
+        <div><div class="stat-label">CIRCUITO</div><div class="stat-value">${point.circuito || '-'}</div></div>
       </div>
       <div class="popup-event">
         <div class="popup-line"><span>01</span>Validar impacto local com a concessionaria.</div>
-        <div class="popup-line"><span>02</span>${point.description || 'Sem detalhe adicional no KML.'}</div>
+        <div class="popup-line"><span>02</span>${point.description || `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`}</div>
       </div>
     </div>
   `);

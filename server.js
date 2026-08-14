@@ -199,17 +199,63 @@ function parseTransformersKml(kml) {
     const [lng, lat] = String(coordinateText || '').trim().split(/\s+/)[0]?.split(',').map(Number) || [];
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     const description = cleanXmlText(firstTag(block, 'description'));
+    const fields = extractKmlFields(block, description);
     const name = cleanXmlText(firstTag(block, 'name')) || `Transformador ${index + 1}`;
     const text = `${name} ${description} ${cleanXmlText(block)}`;
+    const location = bestField(fields, ['endereco', 'logradouro', 'rua', 'local', 'localidade', 'referencia', 'ponto', 'bairro'])
+      || description
+      || name;
     return {
       id: stableId(`${name}|${lat.toFixed(6)}|${lng.toFixed(6)}`),
       name,
       description,
+      fields,
+      location,
+      bairro: bestField(fields, ['bairro', 'comunidade', 'localidade']),
+      endereco: bestField(fields, ['endereco', 'logradouro', 'rua']),
+      referencia: bestField(fields, ['referencia', 'ponto', 'local']),
+      circuito: bestField(fields, ['circuito', 'alimentador', 'linha']),
+      codigo: bestField(fields, ['codigo', 'cod', 'id', 'numero', 'transformador']),
       lat,
       lng,
       status: inferTransformerStatus(text),
     };
   }).filter(Boolean);
+}
+
+function extractKmlFields(block, description) {
+  const fields = {};
+  [...String(block).matchAll(/<Data\b[^>]*name=["']([^"']+)["'][^>]*>[\s\S]*?<value\b[^>]*>([\s\S]*?)<\/value>[\s\S]*?<\/Data>/gi)]
+    .forEach((match) => addField(fields, match[1], match[2]));
+  [...String(block).matchAll(/<SimpleData\b[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/SimpleData>/gi)]
+    .forEach((match) => addField(fields, match[1], match[2]));
+
+  const descriptionText = cleanXmlText(description);
+  descriptionText.split(/\s*(?:\||;|\n)\s*/).forEach((part) => {
+    const match = part.match(/^([^:=]{2,40})\s*[:=]\s*(.+)$/);
+    if (match) addField(fields, match[1], match[2]);
+  });
+  return fields;
+}
+
+function addField(fields, rawKey, rawValue) {
+  const key = normalizeFieldKey(cleanXmlText(rawKey));
+  const value = cleanXmlText(rawValue);
+  if (!key || !value || fields[key]) return;
+  fields[key] = value;
+}
+
+function normalizeFieldKey(key) {
+  return String(key || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function bestField(fields, keys) {
+  return keys.map((key) => fields[key]).find(Boolean) || '';
 }
 
 function firstTag(text, tag) {

@@ -356,11 +356,11 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     })),
     ...transformerPoints.slice(0, 4).map((item) => ({
       type: 'FALTA DE ENERGIA',
-      title: item.name || 'Transformador fora',
-      meta: `${region.name} Â· Light KML`,
+      title: transformerLocationTitle(item),
+      meta: `${item.bairro || region.name} - Light KML`,
       rows: [
-        ['Status', 'Fora de operacao'],
-        ['Coord.', `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`],
+        ['Transformador', item.codigo || item.name || 'Nao informado'],
+        ['Local exato', transformerExactLocation(item)],
       ],
       severity: transformerPoints.length >= 3 ? 2 : 1,
     })),
@@ -397,6 +397,19 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
   const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 4);
   if (!visible.length) return '';
   return `<div class="ops-alert-cards">${visible.map(opsAlertCard).join('')}</div>`;
+}
+
+function transformerLocationTitle(item) {
+  return item.endereco || item.location || item.referencia || item.name || 'Transformador fora';
+}
+
+function transformerExactLocation(item) {
+  const parts = [
+    item.referencia,
+    item.circuito ? `Circuito ${item.circuito}` : '',
+    `${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}`,
+  ].filter(Boolean);
+  return parts.join(' - ');
 }
 
 function opsAlertCard(card) {
