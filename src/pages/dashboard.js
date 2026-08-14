@@ -336,7 +336,7 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
       severity: jam.jamLevel >= 4 ? 2 : 1,
     })),
     ...occurrences.filter((occurrence) => (
-      !occurrence.type.startsWith('WAZ') && !(transformerPoints.length && occurrence.type.startsWith('ENE'))
+      !occurrence.type.startsWith('WAZ') && !occurrence.type.startsWith('ENE')
     )).slice(0, 4).map((occurrence) => ({
       type: occurrenceTitle(occurrence.type),
       title: occurrence.title,
