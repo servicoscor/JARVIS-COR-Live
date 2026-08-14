@@ -875,6 +875,259 @@ a { color: inherit; text-decoration: none; }
   line-height: 1.15;
 }
 
+@keyframes ops-radar-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ops-radar-pulse {
+  0%, 100% { opacity: .45; transform: scale(.96); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes ops-radar-scan {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes ops-card-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(var(--dx, 4px), var(--dy, -4px)); }
+}
+
+.ops-alert-radar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(239,43,24,.13), transparent 25%),
+    radial-gradient(ellipse at 50% 50%, #111a29 0%, #0a1220 54%, #060b13 100%);
+  border-top: 1px solid rgba(143,162,187,.18);
+}
+
+.ops-radar-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .55;
+  background-image:
+    linear-gradient(rgba(143,162,187,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(143,162,187,.08) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(circle at 50% 50%, #000 0 62%, transparent 82%);
+}
+
+.ops-radar-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(180px, 22vw, 310px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ops-radar-glow {
+  position: absolute;
+  inset: -22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239,43,24,.22), transparent 68%);
+  animation: ops-radar-pulse 4.8s ease-in-out infinite;
+}
+
+.ops-radar-dial {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 220deg, rgba(239,43,24,0), rgba(239,43,24,.75), rgba(255,255,255,.2), rgba(239,43,24,0) 90deg),
+    #080d16;
+  border: 1px solid rgba(143,162,187,.35);
+  box-shadow: 0 0 50px rgba(0,0,0,.8), inset 0 0 34px rgba(0,0,0,.9);
+  animation: ops-radar-spin 18s linear infinite;
+}
+
+.ops-radar-dial::before {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: #070c14;
+  border: 1px solid rgba(143,162,187,.24);
+}
+
+.ops-radar-dial::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  width: 2px;
+  height: 43%;
+  background: linear-gradient(180deg, #ff6f68, transparent);
+  box-shadow: 0 0 14px rgba(239,43,24,.9);
+  transform-origin: 50% 98%;
+  animation: ops-radar-scan 4.5s linear infinite;
+}
+
+.ops-radar-dial span {
+  position: absolute;
+  inset: calc(18% + var(--i, 0px));
+  border: 1px dashed rgba(143,162,187,.18);
+  border-radius: 50%;
+}
+
+.ops-radar-dial span:nth-child(1) { --i: 0px; }
+.ops-radar-dial span:nth-child(2) { --i: 24px; }
+.ops-radar-dial span:nth-child(3) { --i: 48px; }
+.ops-radar-dial span:nth-child(4) { --i: 72px; }
+
+.ops-radar-core {
+  position: relative;
+  z-index: 2;
+  width: 46%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 50%;
+  background: rgba(6,10,18,.86);
+  border: 1px solid rgba(143,162,187,.28);
+  text-align: center;
+}
+
+.ops-radar-core span,
+.ops-radar-core em {
+  color: #8fa2bb;
+  font: 800 9px "IBM Plex Mono", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+.ops-radar-core strong {
+  color: #f4f7fb;
+  font: 900 clamp(34px, 4.5vw, 58px) "IBM Plex Mono", monospace;
+  line-height: .95;
+}
+
+.ops-radar-core em {
+  color: #ff6f68;
+}
+
+.ops-radar-cards {
+  position: absolute;
+  inset: 12px 24px 46px;
+}
+
+.ops-alert-radar .ops-alert-card {
+  position: absolute;
+  width: clamp(205px, 18.4vw, 286px);
+  height: auto;
+  max-height: 145px;
+  animation: ops-card-drift 12s ease-in-out infinite;
+  --dx: 5px;
+  --dy: -5px;
+}
+
+.ops-alert-radar .ops-alert-card.pos-1 { left: 0; top: 0; }
+.ops-alert-radar .ops-alert-card.pos-2 { left: 0; top: 38%; --dx: 7px; --dy: 5px; }
+.ops-alert-radar .ops-alert-card.pos-3 { left: 0; bottom: 0; --dx: -5px; --dy: 4px; }
+.ops-alert-radar .ops-alert-card.pos-4 { left: 19%; top: 0; --dx: 4px; --dy: 6px; }
+.ops-alert-radar .ops-alert-card.pos-5 { left: 19%; bottom: 0; --dx: -7px; --dy: -4px; }
+.ops-alert-radar .ops-alert-card.pos-6 { right: 19%; top: 0; --dx: 6px; --dy: -6px; }
+.ops-alert-radar .ops-alert-card.pos-7 { right: 19%; bottom: 0; --dx: -6px; --dy: 6px; }
+.ops-alert-radar .ops-alert-card.pos-8 { right: 0; top: 0; --dx: -5px; --dy: -5px; }
+.ops-alert-radar .ops-alert-card.pos-9 { right: 0; top: 38%; --dx: 8px; --dy: 5px; }
+.ops-alert-radar .ops-alert-card.pos-10 { right: 0; bottom: 0; --dx: -4px; --dy: 6px; }
+
+.ops-alert-radar .ops-alert-body h2 {
+  -webkit-line-clamp: 1;
+}
+
+.ops-alert-radar .ops-alert-rows div:nth-child(n+3) {
+  display: none;
+}
+
+.ops-alert-radar.count-7 .ops-alert-card,
+.ops-alert-radar.count-8 .ops-alert-card,
+.ops-alert-radar.count-9 .ops-alert-card,
+.ops-alert-radar.count-10 .ops-alert-card {
+  width: clamp(190px, 16vw, 245px);
+  max-height: 124px;
+}
+
+.ops-alert-radar.count-7 .ops-alert-head,
+.ops-alert-radar.count-8 .ops-alert-head,
+.ops-alert-radar.count-9 .ops-alert-head,
+.ops-alert-radar.count-10 .ops-alert-head {
+  height: 24px;
+}
+
+.ops-alert-radar.count-7 .ops-alert-head strong,
+.ops-alert-radar.count-8 .ops-alert-head strong,
+.ops-alert-radar.count-9 .ops-alert-head strong,
+.ops-alert-radar.count-10 .ops-alert-head strong {
+  font-size: 11px;
+}
+
+.ops-alert-radar.count-7 .ops-alert-body,
+.ops-alert-radar.count-8 .ops-alert-body,
+.ops-alert-radar.count-9 .ops-alert-body,
+.ops-alert-radar.count-10 .ops-alert-body {
+  padding: 6px 10px;
+}
+
+.ops-alert-radar.count-7 .ops-alert-body h2,
+.ops-alert-radar.count-8 .ops-alert-body h2,
+.ops-alert-radar.count-9 .ops-alert-body h2,
+.ops-alert-radar.count-10 .ops-alert-body h2 {
+  font-size: 12px;
+}
+
+.ops-radar-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 28px;
+  background: rgba(6,10,18,.92);
+  border-top: 1px solid rgba(143,162,187,.18);
+}
+
+.ops-radar-footer div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ops-radar-footer span {
+  width: 9px;
+  height: 9px;
+  background: #ff6f68;
+  box-shadow: 0 0 12px rgba(239,43,24,.9);
+  animation: ops-radar-pulse 1.4s ease-in-out infinite;
+}
+
+.ops-radar-footer b {
+  color: #8fa2bb;
+  font: 800 9px "IBM Plex Mono", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ops-radar-footer strong {
+  color: #f4f7fb;
+  font: 900 12px "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+}
+
 .ops-alert-cards.is-compact {
   gap: 10px;
 }
@@ -2096,6 +2349,33 @@ a { color: inherit; text-decoration: none; }
   .ops-alert-cards.count-6 { --alert-rows: 3; }
   .ops-alert-cards.count-7,
   .ops-alert-cards.count-8 { --alert-rows: 4; }
+  .ops-radar-center {
+    width: clamp(150px, 34vw, 230px);
+  }
+  .ops-radar-cards {
+    inset: 10px 20px 42px;
+  }
+  .ops-alert-radar .ops-alert-card {
+    width: calc(50% - 12px);
+    max-height: 118px;
+  }
+  .ops-alert-radar .ops-alert-card.pos-1 { left: 0; top: 0; }
+  .ops-alert-radar .ops-alert-card.pos-2 { right: 0; left: auto; top: 0; }
+  .ops-alert-radar .ops-alert-card.pos-3 { left: 0; top: 25%; bottom: auto; }
+  .ops-alert-radar .ops-alert-card.pos-4 { right: 0; left: auto; top: 25%; }
+  .ops-alert-radar .ops-alert-card.pos-5 { left: 0; top: 50%; bottom: auto; }
+  .ops-alert-radar .ops-alert-card.pos-6 { right: 0; left: auto; top: 50%; bottom: auto; }
+  .ops-alert-radar .ops-alert-card.pos-7 { left: 0; top: 75%; bottom: auto; }
+  .ops-alert-radar .ops-alert-card.pos-8 { right: 0; left: auto; top: 75%; bottom: auto; }
+  .ops-alert-radar .ops-alert-card.pos-9,
+  .ops-alert-radar .ops-alert-card.pos-10 { display: none; }
+  .ops-radar-footer {
+    height: 34px;
+    padding-inline: 18px;
+  }
+  .ops-radar-footer div:nth-child(n+3) {
+    display: none;
+  }
   .ops-alert-head {
     height: 24px;
   }

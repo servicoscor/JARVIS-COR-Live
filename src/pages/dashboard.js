@@ -395,11 +395,34 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
     });
   }
 
-  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 8);
+  const visible = cards.sort((a, b) => b.severity - a.severity).slice(0, 10);
   if (!visible.length) return '';
-  const rows = visible.length > 4 ? 2 : 1;
-  const compact = visible.length > 4 ? 'is-compact' : '';
-  return `<div class="ops-alert-cards ${compact} count-${visible.length}" style="--alert-count:${visible.length};--alert-rows:${rows}">${visible.map(opsAlertCard).join('')}</div>`;
+  const critical = visible.filter((card) => card.severity === 2).length;
+  return `
+    <div class="ops-alert-radar count-${visible.length}" style="--alert-count:${visible.length}">
+      <div class="ops-radar-grid" aria-hidden="true"></div>
+      <div class="ops-radar-center" aria-hidden="true">
+        <div class="ops-radar-glow"></div>
+        <div class="ops-radar-dial">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="ops-radar-core">
+          <span>Ocorrencias ativas</span>
+          <strong>${visible.length}</strong>
+          <em>Varrendo</em>
+        </div>
+      </div>
+      <div class="ops-radar-cards">
+        ${visible.map((card, index) => opsAlertCard(card, index)).join('')}
+      </div>
+      <div class="ops-radar-footer">
+        <div><span></span><strong>Organismo ativo</strong></div>
+        <div><b>Sinais</b><strong>${visible.length + critical}</strong></div>
+        <div><b>Criticos</b><strong>${critical}</strong></div>
+        <div><b>Varredura</b><strong>11 s</strong></div>
+      </div>
+    </div>
+  `;
 }
 
 function transformerLocationTitle(item) {
@@ -418,9 +441,9 @@ function transformerDetailRows(item) {
   return rows.filter(([, value]) => value && value !== 'Nao informado').slice(0, 6);
 }
 
-function opsAlertCard(card) {
+function opsAlertCard(card, index = 0) {
   return `
-    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'} ${card.detail ? `is-${card.detail}` : ''}">
+    <article class="ops-alert-card ${card.severity === 2 ? 'critical' : 'attention'} ${card.detail ? `is-${card.detail}` : ''} pos-${index + 1}">
       <div class="ops-alert-head"><span>!</span><strong>${card.type}</strong></div>
       <div class="ops-alert-body">
         <h2>${card.title}</h2>
