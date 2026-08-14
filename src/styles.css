@@ -486,22 +486,25 @@ a { color: inherit; text-decoration: none; }
 }
 
 .standalone-light {
+  position: fixed;
+  inset: 0;
   background: #e9e9e9;
   color: #0e1724;
   overflow: hidden;
 }
 
 .ops-region-page {
-  width: calc(100vw - 8px);
-  height: calc(100vh - 8px);
+  width: 100%;
+  height: 100%;
   min-height: 0;
-  margin: 4px auto;
+  margin: 0;
   display: grid;
-  grid-template-rows: 45vh 54px minmax(0, 1fr);
+  grid-template-rows: 35vh 54px minmax(0, 1fr);
   background: #f4f4f4;
   border: 1px solid #8f8f8f;
   color: #0c1623;
   font-family: Inter, system-ui, sans-serif;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
@@ -570,7 +573,7 @@ a { color: inherit; text-decoration: none; }
 .ops-status-stage.has-alerts {
   place-items: stretch;
   align-content: start;
-  padding: 16px 28px;
+  padding: 14px 26px;
   overflow: hidden;
 }
 
@@ -741,7 +744,7 @@ a { color: inherit; text-decoration: none; }
 .ops-alert-cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(220px, 1fr));
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   align-items: start;
 }
@@ -756,7 +759,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-head {
-  height: 30px;
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -785,18 +788,18 @@ a { color: inherit; text-decoration: none; }
 }
 
 .ops-alert-body {
-  padding: 8px 14px 10px;
+  padding: 7px 14px 9px;
 }
 
 .ops-alert-body h2 {
   margin: 0;
   color: #111;
-  font-size: 14.5px;
+  font-size: 14px;
   line-height: 1.15;
 }
 
 .ops-alert-body p {
-  margin: 3px 0 8px;
+  margin: 3px 0 7px;
   color: #5f6772;
   font-size: 11px;
 }
@@ -809,7 +812,7 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   justify-content: space-between;
   gap: 14px;
-  padding: 5px 0;
+  padding: 4px 0;
   border-bottom: 1px solid #bdbdbd;
 }
 
@@ -1971,10 +1974,10 @@ a { color: inherit; text-decoration: none; }
   .standalone-light { overflow: hidden; }
   .ops-region-page {
     width: 100%;
-    height: 100vh;
+    height: 100%;
     min-height: 0;
     margin: 0;
-    grid-template-rows: 42vh 54px minmax(0, 1fr);
+    grid-template-rows: 35vh 54px minmax(0, 1fr);
   }
   .ops-kpis,
   .ops-main {
