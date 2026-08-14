@@ -248,14 +248,15 @@ async function refreshWeather() {
 async function refreshCorApis() {
   try {
     const data = await fetchCorApis(state.regions);
+    const previous = state.corData;
     state.corLive = data.ok;
     state.corData = {
-      cityStage: data.cityStage,
-      heat: data.heat,
-      rainStations: data.rainStations,
-      sirens: data.sirens,
-      forecastNow: data.forecastNow,
-      forecastExtended: data.forecastExtended,
+      cityStage: data.feeds.estagio.ok ? data.cityStage : previous.cityStage,
+      heat: data.feeds.calor.ok ? data.heat : previous.heat,
+      rainStations: data.feeds.pluviometricos.ok ? data.rainStations : previous.rainStations,
+      sirens: data.feeds.sirenes.ok ? data.sirens : previous.sirens,
+      forecastNow: data.feeds.previsaoAgora.ok ? data.forecastNow : previous.forecastNow,
+      forecastExtended: data.feeds.previsaoEstendida.ok ? data.forecastExtended : previous.forecastExtended,
     };
     state.regions = applyRainAndSirens(state.regions, state.corData);
     if (data.ok) markDataUpdate();
