@@ -418,6 +418,9 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
             <i></i><i></i><i></i><i></i><i></i>
             <b class="m-top">F/2.8</b><b class="m-left">28</b><b class="m-right">70</b><b class="m-bottom">∞</b>
           </div>
+          <div class="ops-radar-blips">
+            ${visible.map((card, index) => opsRadarBlip(card, index)).join('')}
+          </div>
           <div class="ops-radar-core">
             <span>${metrics.label}</span>
             <strong>${metrics.active}</strong>
@@ -453,6 +456,24 @@ function opsRadarMetrics(region, cards, visible, sources) {
     status: active ? 'Varrendo' : 'Normal',
     scanSeconds: Math.max(6, Math.min(18, 6 + Math.ceil(signals / 2))),
   };
+}
+
+function opsRadarBlip(card, index) {
+  const spots = [
+    [63, 36], [71, 51], [60, 66], [43, 68], [31, 54],
+    [38, 38], [52, 28], [76, 40], [25, 43], [69, 72],
+  ];
+  const [x, y] = spots[index % spots.length];
+  return `<span class="${card.severity === 2 ? 'critical' : 'attention'}" style="--x:${x}%;--y:${y}%">${opsRadarBlipCode(card.type)}</span>`;
+}
+
+function opsRadarBlipCode(type) {
+  if (/ACIDENTE/.test(type)) return 'AC';
+  if (/CONGESTIONAMENTO|TRANSITO/.test(type)) return 'TR';
+  if (/SIRENE/.test(type)) return 'SI';
+  if (/ENERGIA/.test(type)) return 'EN';
+  if (/ALAGAMENTO|CHUVA/.test(type)) return 'CH';
+  return 'OP';
 }
 
 function transformerLocationTitle(item) {
