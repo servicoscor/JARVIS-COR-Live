@@ -960,7 +960,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(360px, 29vw, 464px);
+  width: clamp(430px, 31vw, 520px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   display: grid;
@@ -970,63 +970,61 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-glow {
   position: absolute;
-  inset: -26px;
+  inset: -18px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(239,43,24,.24), transparent 67%);
+  background:
+    radial-gradient(circle, transparent 0 67%, rgba(239,43,24,.11) 68%, transparent 72%),
+    radial-gradient(circle, rgba(239,43,24,.2), transparent 66%);
+  filter: blur(.4px);
   animation: ops-radar-pulse 4.8s ease-in-out infinite;
 }
 
 .ops-radar-dial {
   position: absolute;
-  inset: 5.5%;
+  inset: 6.5%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 42% 34%, rgba(80,91,108,.36), transparent 21%),
-    radial-gradient(circle at 50% 50%, #060a11 0 33%, #0a0f17 34% 47%, #151b25 48% 58%, #05070c 60% 100%);
-  border: 1px solid rgba(190,220,255,.28);
+    radial-gradient(circle at 39% 30%, rgba(112,128,150,.22), transparent 24%),
+    radial-gradient(circle at 50% 50%, transparent 0 31%, rgba(93,111,136,.16) 31.4% 31.8%, transparent 32.2% 47%, rgba(93,111,136,.18) 47.4% 47.8%, transparent 48.2%),
+    radial-gradient(circle at 50% 50%, #05080e 0 32%, #09101a 33% 58%, #03050a 59% 100%);
+  border: 1px solid rgba(169,196,228,.34);
   box-shadow:
-    0 0 52px rgba(0,0,0,.9),
-    inset 0 0 38px rgba(0,0,0,.96),
-    inset 0 0 0 10px rgba(4,7,13,.88);
+    0 0 58px rgba(0,0,0,.96),
+    0 0 22px rgba(96,123,158,.1),
+    inset 0 0 52px rgba(0,0,0,.98),
+    inset 0 0 0 8px rgba(3,6,12,.9);
 }
 
 .ops-radar-dial::before {
   content: "";
   position: absolute;
-  inset: 18%;
+  inset: 19%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 38% 30%, rgba(190,220,255,.12), transparent 34%),
-    radial-gradient(circle at 50% 50%, #080d16 0 43%, #111722 44% 45%, #080c14 46% 100%);
-  border: 1px solid rgba(143,162,187,.24);
-  box-shadow: inset 0 0 34px rgba(0,0,0,.92);
+    linear-gradient(126deg, transparent 0 42%, rgba(111,132,160,.17) 42.5% 43%, transparent 43.5%),
+    linear-gradient(18deg, transparent 0 46%, rgba(111,132,160,.15) 46.5% 47%, transparent 47.5%),
+    radial-gradient(circle at 38% 30%, rgba(190,220,255,.13), transparent 32%),
+    radial-gradient(circle at 50% 50%, #070c14 0 43%, #1a2431 43.5% 44%, #070b12 44.5% 100%);
+  border: 1px solid rgba(143,162,187,.31);
+  box-shadow: inset 0 0 38px rgba(0,0,0,.94), 0 0 0 5px rgba(3,6,11,.76);
 }
 
 .ops-radar-dial::after {
   content: "";
   position: absolute;
-  inset: 2%;
+  inset: 1%;
   border-radius: 50%;
   background:
-    repeating-conic-gradient(from -10deg, rgba(190,220,255,.34) 0deg 1.1deg, transparent 1.1deg 4deg);
-  mask: radial-gradient(circle, transparent 0 86%, #000 86.5% 88.5%, transparent 89%);
-  opacity: .75;
+    repeating-conic-gradient(from -10deg, rgba(205,225,247,.58) 0deg .75deg, transparent .75deg 4deg);
+  mask: radial-gradient(circle, transparent 0 87%, #000 87.4% 89%, transparent 89.5%);
+  opacity: .88;
 }
 
 .ops-radar-outer {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background:
-    conic-gradient(from -48deg,
-      rgba(255,47,26,1) 0deg 124deg,
-      transparent 124deg 158deg,
-      rgba(255,92,50,.96) 158deg 198deg,
-      transparent 198deg 230deg,
-      rgba(114,132,154,.9) 230deg 316deg,
-      transparent 316deg 360deg);
-  mask: radial-gradient(circle, transparent 0 83%, #000 84% 92.5%, transparent 93.4%);
-  filter: drop-shadow(0 0 12px rgba(239,43,24,.86));
+  filter: drop-shadow(0 0 7px rgba(239,43,24,.48));
   animation: ops-radar-spin 28s linear infinite;
 }
 
@@ -1035,22 +1033,54 @@ a { color: inherit; text-decoration: none; }
   content: "";
   position: absolute;
   border-radius: 50%;
-  inset: 8%;
 }
 
 .ops-radar-outer::before {
-  background: conic-gradient(from 268deg, transparent 0 256deg, rgba(255,47,26,.98) 256deg 350deg, transparent 350deg 360deg);
-  mask: radial-gradient(circle, transparent 0 78%, #000 79% 82%, transparent 83%);
+  inset: 2%;
+  border: 6px solid transparent;
+  border-top-color: #ff321c;
+  border-right-color: #ff321c;
+  border-bottom-color: #718096;
+  transform: rotate(-23deg);
+  box-shadow: inset 0 0 0 1px rgba(166,190,218,.18), 0 0 6px rgba(239,43,24,.38);
 }
 
 .ops-radar-outer::after {
-  background: conic-gradient(from 82deg, transparent 0 8deg, rgba(255,89,48,.95) 8deg 128deg, transparent 128deg 360deg);
-  mask: radial-gradient(circle, transparent 0 67%, #000 68.5% 72%, transparent 73.5%);
+  inset: 8%;
+  border: 2px solid transparent;
+  border-top-color: #ff341d;
+  border-right-color: #ff341d;
+  transform: rotate(7deg);
+  box-shadow: 0 0 5px rgba(255,49,27,.66);
 }
 
 .ops-radar-outer i {
   position: absolute;
-  display: none;
+  display: block;
+  border-radius: 50%;
+}
+
+.ops-radar-outer .arc-hot {
+  inset: 15%;
+  border: 10px solid transparent;
+  border-top-color: rgba(197,55,36,.75);
+  border-left-color: rgba(197,55,36,.52);
+  transform: rotate(-17deg);
+  box-shadow: inset 0 0 8px rgba(255,72,47,.16);
+}
+
+.ops-radar-outer .arc-cold {
+  inset: 1%;
+  border: 2px dashed rgba(211,228,247,.34);
+  filter: none;
+}
+
+.ops-radar-outer .arc-low {
+  inset: 12%;
+  border: 2px solid transparent;
+  border-right-color: #ff3b22;
+  transform: rotate(18deg);
+  box-shadow: 0 0 5px rgba(255,59,34,.58);
 }
 
 .ops-radar-beam {
@@ -1058,10 +1088,10 @@ a { color: inherit; text-decoration: none; }
   z-index: 2;
   left: 50%;
   top: 50%;
-  width: 43%;
-  height: 2.5px;
-  background: linear-gradient(90deg, rgba(255,50,28,1), rgba(239,43,24,.52), transparent);
-  box-shadow: 0 0 16px rgba(239,43,24,.95);
+  width: 42%;
+  height: 2px;
+  background: linear-gradient(90deg, #ff3b25 0, rgba(255,52,31,.8) 52%, transparent 100%);
+  box-shadow: 0 0 7px #ef2b18, 0 0 18px rgba(239,43,24,.78);
   transform-origin: 0 50%;
   animation: ops-radar-scan 4.5s linear infinite;
 }
@@ -1081,14 +1111,15 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-core {
   position: relative;
   z-index: 4;
-  width: 29%;
+  width: 30%;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   align-content: center;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(8,11,18,.96) 0 58%, rgba(4,6,12,.86) 100%);
-  border: 1px solid rgba(143,162,187,.28);
+  background: radial-gradient(circle at 45% 38%, rgba(18,25,36,.98) 0, rgba(5,8,14,.98) 64%, #02040a 100%);
+  border: 1px solid rgba(143,162,187,.36);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.86), 0 0 18px rgba(0,0,0,.62);
   text-align: center;
 }
 
@@ -1111,7 +1142,7 @@ a { color: inherit; text-decoration: none; }
   top: 50%;
   width: 1px;
   height: 48%;
-  background: linear-gradient(180deg, rgba(143,162,187,.35), transparent);
+  background: linear-gradient(180deg, rgba(143,162,187,.48), rgba(143,162,187,.08));
   transform-origin: 50% 0;
 }
 
@@ -1213,15 +1244,16 @@ a { color: inherit; text-decoration: none; }
 
 .ops-alert-radar.state-attention .ops-radar-dial {
   background:
-    conic-gradient(from 215deg, rgba(215,146,0,0), rgba(215,146,0,.82) 64deg, rgba(255,255,255,.28) 82deg, rgba(80,96,118,.75) 124deg, rgba(215,146,0,0) 178deg),
-    radial-gradient(circle at 40% 35%, #262b35, #080b12 58%, #020306);
+    radial-gradient(circle at 39% 30%, rgba(112,128,150,.22), transparent 24%),
+    radial-gradient(circle at 50% 50%, transparent 0 31%, rgba(93,111,136,.16) 31.4% 31.8%, transparent 32.2% 47%, rgba(93,111,136,.18) 47.4% 47.8%, transparent 48.2%),
+    radial-gradient(circle at 50% 50%, #05080e 0 32%, #09101a 33% 58%, #03050a 59% 100%);
 }
 
 .ops-radar-cards {
   position: absolute;
   inset: 12px clamp(16px, 1.5vw, 28px);
   display: grid;
-  grid-template-columns: minmax(190px, 1fr) clamp(330px, 31vw, 500px) minmax(190px, 1fr);
+  grid-template-columns: minmax(190px, 1fr) clamp(430px, 31vw, 520px) minmax(190px, 1fr);
   grid-template-rows: repeat(var(--radar-rows), minmax(0, 1fr));
   column-gap: clamp(14px, 1.7vw, 28px);
   row-gap: 9px;
