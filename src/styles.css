@@ -975,46 +975,99 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-glow {
   position: absolute;
-  inset: -22px;
+  inset: -18px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(239,43,24,.22), transparent 68%);
+  background: radial-gradient(circle, rgba(239,43,24,.18), transparent 66%);
   animation: ops-radar-pulse 4.8s ease-in-out infinite;
 }
 
 .ops-radar-dial {
   position: absolute;
-  inset: 0;
+  inset: 3%;
   border-radius: 50%;
   background:
-    conic-gradient(from 215deg, rgba(239,43,24,0), rgba(239,43,24,.9) 64deg, rgba(255,255,255,.32) 82deg, rgba(80,96,118,.75) 124deg, rgba(239,43,24,0) 178deg),
-    radial-gradient(circle at 40% 35%, #262b35, #080b12 58%, #020306);
-  border: 1px solid rgba(190,220,255,.32);
-  box-shadow: 0 0 62px rgba(0,0,0,.86), inset 0 0 54px rgba(0,0,0,.95);
-  animation: ops-radar-spin 28s linear infinite;
+    radial-gradient(circle at 42% 34%, rgba(80,91,108,.45), transparent 21%),
+    radial-gradient(circle at 50% 50%, #070b13 0 34%, #090d15 35% 48%, #151a22 49% 58%, #05070c 60% 100%);
+  border: 1px solid rgba(190,220,255,.22);
+  box-shadow:
+    0 0 52px rgba(0,0,0,.9),
+    inset 0 0 38px rgba(0,0,0,.96),
+    inset 0 0 0 12px rgba(4,7,13,.85);
 }
 
 .ops-radar-dial::before {
   content: "";
   position: absolute;
-  inset: 17%;
+  inset: 18%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 38% 30%, rgba(190,220,255,.16), transparent 32%),
-    #070b13;
+    radial-gradient(circle at 38% 30%, rgba(190,220,255,.12), transparent 34%),
+    radial-gradient(circle at 50% 50%, #080d16 0 43%, #111722 44% 45%, #080c14 46% 100%);
   border: 1px solid rgba(143,162,187,.24);
-  box-shadow: inset 0 0 32px rgba(0,0,0,.9);
+  box-shadow: inset 0 0 34px rgba(0,0,0,.92);
 }
 
 .ops-radar-dial::after {
   content: "";
   position: absolute;
+  inset: 2%;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from -10deg, rgba(190,220,255,.34) 0deg 1.1deg, transparent 1.1deg 4deg);
+  mask: radial-gradient(circle, transparent 0 86%, #000 86.5% 88.5%, transparent 89%);
+  opacity: .75;
+}
+
+.ops-radar-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 205deg,
+      rgba(239,43,24,.95) 0deg 76deg,
+      transparent 76deg 116deg,
+      rgba(255,84,51,.95) 116deg 164deg,
+      transparent 164deg 220deg,
+      rgba(103,120,141,.8) 220deg 304deg,
+      transparent 304deg 360deg);
+  mask: radial-gradient(circle, transparent 0 88%, #000 89% 92.5%, transparent 93.5%);
+  filter: drop-shadow(0 0 10px rgba(239,43,24,.7));
+  animation: ops-radar-spin 28s linear infinite;
+}
+
+.ops-radar-outer::before,
+.ops-radar-outer::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  inset: 8%;
+}
+
+.ops-radar-outer::before {
+  background: conic-gradient(from 268deg, transparent 0 260deg, rgba(239,43,24,.9) 260deg 346deg, transparent 346deg 360deg);
+  mask: radial-gradient(circle, transparent 0 82%, #000 83% 85%, transparent 86%);
+}
+
+.ops-radar-outer::after {
+  background: conic-gradient(from 82deg, transparent 0 4deg, rgba(239,43,24,.95) 4deg 126deg, transparent 126deg 360deg);
+  mask: radial-gradient(circle, transparent 0 72%, #000 73% 76%, transparent 77%);
+}
+
+.ops-radar-outer i {
+  position: absolute;
+  display: none;
+}
+
+.ops-radar-beam {
+  position: absolute;
+  z-index: 2;
   left: 50%;
-  top: 6%;
-  width: 2px;
-  height: 44%;
-  background: linear-gradient(180deg, #ff6f68, transparent);
-  box-shadow: 0 0 14px rgba(239,43,24,.9);
-  transform-origin: 50% 98%;
+  top: 50%;
+  width: 40%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(239,43,24,.95), rgba(239,43,24,.45), transparent);
+  box-shadow: 0 0 12px rgba(239,43,24,.85);
+  transform-origin: 0 50%;
   animation: ops-radar-scan 4.5s linear infinite;
 }
 
@@ -1032,22 +1085,22 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-core {
   position: relative;
-  z-index: 2;
-  width: 38%;
+  z-index: 4;
+  width: 31%;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
   align-content: center;
   border-radius: 50%;
-  background: rgba(6,8,14,.9);
+  background: rgba(6,8,14,.82);
   border: 1px solid rgba(143,162,187,.28);
   text-align: center;
 }
 
 .ops-radar-reticle {
   position: absolute;
-  z-index: 1;
-  inset: 23%;
+  z-index: 3;
+  inset: 24%;
   border-radius: 50%;
   pointer-events: none;
   color: rgba(143,162,187,.86);
@@ -1088,7 +1141,7 @@ a { color: inherit; text-decoration: none; }
 .ops-radar-core span,
 .ops-radar-core em {
   color: #8fa2bb;
-  font: 800 9px "IBM Plex Mono", monospace;
+  font: 800 10px "IBM Plex Mono", monospace;
   letter-spacing: .08em;
   text-transform: uppercase;
   font-style: normal;
@@ -1096,7 +1149,7 @@ a { color: inherit; text-decoration: none; }
 
 .ops-radar-core strong {
   color: #f4f7fb;
-  font: 900 clamp(46px, 5.2vw, 76px) "IBM Plex Mono", monospace;
+  font: 900 clamp(52px, 5vw, 72px) "IBM Plex Mono", monospace;
   line-height: .95;
 }
 

@@ -411,6 +411,10 @@ function opsAlertCards(region, occurrences, wazeAlerts, wazeJams, triggeredSiren
           <div class="ops-radar-dial">
             <span></span><span></span><span></span><span></span>
           </div>
+          <div class="ops-radar-outer">
+            <i class="arc-hot"></i><i class="arc-cold"></i><i class="arc-low"></i>
+          </div>
+          <div class="ops-radar-beam"></div>
           <div class="ops-radar-reticle">
             <i></i><i></i><i></i><i></i><i></i>
             <b class="m-top">F/2.8</b><b class="m-left">28</b><b class="m-right">70</b><b class="m-bottom">∞</b>
